@@ -2,8 +2,14 @@ const { app, BrowserWindow, ipcMain, dialog, Menu, shell } = require('electron')
 const path = require('path');
 const fs = require('fs');
 
-const DATA_PATH = path.join(__dirname, 'tasks.json');
 const PREFS_FILENAME = 'flowassist-profile.json';
+
+function getLegacyTasksPath() {
+  if (app.isPackaged) {
+    return path.join(app.getPath('userData'), 'tasks.json');
+  }
+  return path.join(__dirname, 'tasks.json');
+}
 
 let mainWindow = null;
 
@@ -51,7 +57,7 @@ function getActiveDataPath() {
   if (hasExplicitProfilePath()) {
     return path.normalize(readPrefs().profilePath);
   }
-  return DATA_PATH;
+  return getLegacyTasksPath();
 }
 
 function ensureFaJsonPath(userPath) {
@@ -99,29 +105,36 @@ function openDocumentation() {
   });
 }
 
-function showAbout() {
-  var version = '0.1.0';
-  var description = '';
-  var author = 'k-sva';
+function readPackageJson() {
   try {
-    var pkg = JSON.parse(fs.readFileSync(path.join(__dirname, 'package.json'), 'utf8'));
-    if (pkg.version) version = pkg.version;
-    if (pkg.description) description = pkg.description;
-    if (pkg.author) {
-      author = typeof pkg.author === 'string' ? pkg.author : (pkg.author.name || author);
-    }
-  } catch (e) {
-    /* ignore */
+    return JSON.parse(fs.readFileSync(path.join(__dirname, 'package.json'), 'utf8'));
+  } catch {
+    return null;
   }
+}
+
+function formatAuthorField(author) {
+  if (!author) return '';
+  if (typeof author === 'string') return author.trim();
+  var name = author.name && String(author.name).trim();
+  var email = author.email && String(author.email).trim();
+  if (name && email) return name + ' <' + email + '>';
+  return name || email || '';
+}
+
+function showAbout() {
+  var pkg = readPackageJson();
+  var version = (pkg && pkg.version) ? String(pkg.version) : '0.1.0';
+  var description = (pkg && pkg.description) ? String(pkg.description).trim() : '';
+  var author = formatAuthorField(pkg && pkg.author) || 'k-sva';
   const win = BrowserWindow.getFocusedWindow() || mainWindow;
-  var verShown = version;
-  var m = /^(\d+)\.(\d+)\.0$/.exec(String(version));
-  if (m) verShown = m[1] + '.' + m[2];
+  var lines = ['Version ' + version, 'Author: ' + author];
+  if (description) lines.push(description);
   dialog.showMessageBox(win, {
-    type: 'info',
+    type: 'none',
     title: 'About FlowAssist',
     message: 'FlowAssist',
-    detail: [description, 'Version ' + verShown, 'Author: ' + author].filter(Boolean).join('\n\n')
+    detail: lines.join('\n\n')
   });
 }
 
@@ -184,7 +197,7 @@ function createWindow() {
     }
   });
 
-  mainWindow.loadFile('index.html');
+  mainWindow.loadFile(path.join(__dirname, 'index.html'));
 
   const debugMode = process.argv.includes('--flowassist-debug');
   mainWindow.webContents.on('did-finish-load', function () {
@@ -197,14 +210,27 @@ function createWindow() {
   }
 }
 
+ipcMain.handle('get-app-metadata', async () => {
+  const pkg = readPackageJson();
+  if (!pkg) {
+    return { version: '0.1.0', author: '', description: '' };
+  }
+  return {
+    version: pkg.version != null ? String(pkg.version) : '',
+    author: formatAuthorField(pkg.author),
+    description: pkg.description != null ? String(pkg.description).trim() : ''
+  };
+});
+
 ipcMain.handle('load-tasks', async () => {
   const explicit = hasExplicitProfilePath();
   const filePath = getActiveDataPath();
   if (!fs.existsSync(filePath)) {
     if (!explicit) {
       const initialData = getInitialTaskData();
-      fs.writeFileSync(DATA_PATH, JSON.stringify(initialData, null, 2));
-      return { success: true, data: initialData, path: DATA_PATH };
+      const legacyPath = getLegacyTasksPath();
+      fs.writeFileSync(legacyPath, JSON.stringify(initialData, null, 2));
+      return { success: true, data: initialData, path: legacyPath };
     }
     return {
       success: false,

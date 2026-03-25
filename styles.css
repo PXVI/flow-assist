@@ -68,6 +68,15 @@ body {
   border-color: #58a6ff;
 }
 
+.app-version-line {
+  margin-top: 10px;
+  font-size: 0.7rem;
+  line-height: 1.35;
+  color: #6e7681;
+  text-align: center;
+  font-weight: 400;
+}
+
 .nav-btn {
   background: transparent;
   border: none;

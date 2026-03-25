@@ -3289,6 +3289,17 @@
     setFormDefaults();
     setSummaryDefaultDates();
 
+    var appVersionLine = $('app-version-line');
+    if (appVersionLine && window.taskAPI && typeof window.taskAPI.getAppMetadata === 'function') {
+      window.taskAPI.getAppMetadata().then(function (meta) {
+        if (!meta || !appVersionLine.parentNode) return;
+        var v = meta.version != null ? String(meta.version).trim() : '';
+        var a = meta.author != null ? String(meta.author).trim() : '';
+        if (v && a) appVersionLine.textContent = 'v' + v + ' · ' + a;
+        else appVersionLine.textContent = v ? 'v' + v : a;
+      }).catch(function () {});
+    }
+
     var addNewTaskBtn = $('add-new-task-btn');
     var addNewTaskBlock = $('add-new-task-block');
     if (addNewTaskBtn && addNewTaskBlock) {

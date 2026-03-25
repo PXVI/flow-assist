@@ -2,6 +2,7 @@ const { contextBridge, ipcRenderer } = require('electron');
 
 contextBridge.exposeInMainWorld('taskAPI', {
   ping: () => console.log('Preload bridge is active and connected!'),
+  getAppMetadata: () => ipcRenderer.invoke('get-app-metadata'),
   loadTasks: () => ipcRenderer.invoke('load-tasks'),
   saveTasks: (data) => ipcRenderer.invoke('save-tasks', data),
   getActiveProfilePath: () => ipcRenderer.invoke('get-active-profile-path'),
