@@ -2,6 +2,8 @@
 
 > A **desktop task tracker** for people who want their work plan, progress history, and reports in one place—**stored in files you control**, not in someone else’s cloud.
 
+FlowAssist is **free software** released under the [**GNU General Public License v3.0** (GPLv3)](LICENSE). You may run, study, redistribute, and modify it under that license; the full legal text is in the [`LICENSE`](LICENSE) file in this repository.
+
 FlowAssist is built for **individual contributors and small teams** who track real work: priorities, ETAs, time logged, sub-tasks, and “what changed over time.” Use it for **weekly planning**, **sprint-style visibility**, **status reviews**, and **lightweight reporting** without leaving a local JSON profile behind.
 
 ---
@@ -156,4 +158,13 @@ Task shape and helpers are described in **`data-schema.js`** (JSDoc and exports)
 
 ## License
 
-If you add a license file, mention it here. Until then, rights remain with the author(s) listed in `package.json`.
+**GNU General Public License v3.0** — see [`LICENSE`](LICENSE).
+
+In short (this is not a substitute for the license text): GPLv3 is a **copyleft** license. If you **distribute** this program or a modified version, you must generally **license the distributed work under GPLv3** and **provide corresponding source** (or a written offer, as the license specifies). Using the app privately or modifying it for your own use without distributing it does not trigger those distribution obligations.
+
+- **Your task data** (JSON profiles you create) is **yours**; the license governs the FlowAssist **program**, not the content of your files.
+- **Copyright**: see `author` in [`package.json`](package.json); you may add a copyright notice in source files as you prefer.
+
+For the authoritative terms, always read **`LICENSE`**.
+
+**SPDX identifier:** `GPL-3.0` (listed in `package.json` as `"license": "GPL-3.0"`).

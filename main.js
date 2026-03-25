@@ -128,7 +128,7 @@ function showAbout() {
   var description = (pkg && pkg.description) ? String(pkg.description).trim() : '';
   var author = formatAuthorField(pkg && pkg.author) || 'k-sva';
   const win = BrowserWindow.getFocusedWindow() || mainWindow;
-  var lines = ['Version ' + version, 'Author: ' + author];
+  var lines = ['Version ' + version, 'Author: ' + author, 'License: GNU General Public License v3.0 (GPLv3)'];
   if (description) lines.push(description);
   dialog.showMessageBox(win, {
     type: 'none',
