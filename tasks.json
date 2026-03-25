@@ -1,0 +1,1772 @@
+{
+  "tasks": [
+    {
+      "id": "ai-1773517766488-yrf2f7l",
+      "title": "Test",
+      "description": "Hello world",
+      "priority": 1,
+      "tags": [
+        "#mon"
+      ],
+      "assigned_date": "2026-03-14",
+      "eta": "2026-03-27",
+      "effort_required_hours": 1,
+      "bug_number": 2,
+      "status": "Dropped",
+      "created_at": "2026-03-14T19:49:26.488Z",
+      "progress_updates": [],
+      "bug_numbers": [
+        2
+      ],
+      "subtasks": [],
+      "eta_updates": [
+        {
+          "id": "ai-1773547463735-dl5z49u",
+          "date_recorded": "2026-03-15",
+          "old_eta": "2026-03-17",
+          "new_eta": "2026-03-27"
+        }
+      ],
+      "effort_updates": [],
+      "categories": [],
+      "concerns": [],
+      "project": "",
+      "difficulty": "Easy"
+    },
+    {
+      "id": "ai-1773518467307-7fyohu0",
+      "title": "LOL",
+      "description": "Something dsdsd asdsdsdsd",
+      "priority": 1,
+      "tags": [
+        "#default"
+      ],
+      "assigned_date": "2026-03-14",
+      "eta": "2026-03-17",
+      "effort_required_hours": 8,
+      "bug_number": 0,
+      "status": "Ongoing",
+      "created_at": "2026-03-14T20:01:07.307Z",
+      "progress_updates": [
+        {
+          "id": "ai-1773518544531-qc8akh9",
+          "text": "One thing completed",
+          "date_added": "2026-03-16",
+          "effort_consumed_hours": 2
+        },
+        {
+          "id": "ai-1773519882453-rv6kppp",
+          "text": "Two thing completed",
+          "date_added": "2026-03-17",
+          "effort_consumed_hours": 4
+        },
+        {
+          "id": "ai-1773521189812-7daaqnd",
+          "text": "This is a ;ldsamfsdf\n;asmd;ad\nasl;dmasmdas\n;sldm;asmdasd\na;sldkm.asmd.,asdasd;aldmasd\nas;ldnas.dm.,asdm;asm;dladma\n;alsdm;laj;asd;\naslkdnlaksnfda;SFa;afa'sfkasml",
+          "date_added": "2026-03-18",
+          "effort_consumed_hours": 1
+        },
+        {
+          "id": "ai-1773521839053-uj3gpkv",
+          "text": "This is the end bitch\n\nlol",
+          "date_added": "2026-03-15",
+          "effort_consumed_hours": 1
+        }
+      ],
+      "bug_numbers": [],
+      "subtasks": [
+        {
+          "id": "ai-1773519915641-e6itztw",
+          "title": "Make a new thing",
+          "status": "Open",
+          "priority": 5,
+          "description": "dsfnsdfsdfsdf\nsdfsdflsd;fmsd\nsdflms;dmfsdf\ns;ldfm;sdmfs\ns;dfms;dlfmsdf\nsdf;lsdmf;lsdmfs\n\naslsnas\naklsnalsnas\naksnalsnasnas",
+          "progress_updates": [
+            {
+              "id": "ai-1773520948193-f9g1nzj",
+              "text": "Completed most of the things.",
+              "date_added": "2026-03-15",
+              "effort_consumed_hours": 1
+            },
+            {
+              "id": "ai-1773545175739-b048clp",
+              "text": "This is good",
+              "date_added": "2026-03-16",
+              "effort_consumed_hours": 1
+            }
+          ],
+          "categories": [],
+          "concerns": [],
+          "project": "",
+          "effort_updates": [],
+          "done_date": "",
+          "difficulty": "Easy"
+        },
+        {
+          "id": "ai-1773526308820-m0zpszz",
+          "title": "A",
+          "description": "",
+          "priority": 1,
+          "status": "Open",
+          "progress_updates": [],
+          "categories": [],
+          "concerns": [],
+          "project": "",
+          "effort_updates": [],
+          "done_date": "",
+          "difficulty": "Easy"
+        },
+        {
+          "id": "ai-1773526311857-w2076en",
+          "title": "B",
+          "description": "",
+          "priority": 1,
+          "status": "Open",
+          "progress_updates": [],
+          "categories": [],
+          "concerns": [],
+          "project": "",
+          "effort_updates": [],
+          "done_date": "",
+          "difficulty": "Easy"
+        },
+        {
+          "id": "ai-1773526315285-0958v75",
+          "title": "C",
+          "description": "",
+          "priority": 1,
+          "status": "Open",
+          "progress_updates": [],
+          "categories": [],
+          "concerns": [],
+          "project": "",
+          "effort_updates": [],
+          "done_date": "",
+          "difficulty": "Easy"
+        },
+        {
+          "id": "ai-1773545051767-g73jvyi",
+          "title": "Yo-Yo Honey Singh",
+          "description": "Hahahaha\nasnm.sa,das.d'asd\naslkdnasdn\naslkfna,sm a\naslkfnlasnvas\nalksadfnasfoilnwe,w;.md\nasalkcfc lawdnwa.ac\na;smdoiasxmk",
+          "priority": 9,
+          "assigned_date": "2026-03-15",
+          "effort_required_hours": 2,
+          "status": "Open",
+          "progress_updates": [],
+          "categories": [
+            "Design"
+          ],
+          "concerns": [],
+          "project": "",
+          "effort_updates": [],
+          "done_date": "",
+          "difficulty": "Easy"
+        }
+      ],
+      "eta_updates": [
+        {
+          "id": "ai-1773524583076-jq3lak2",
+          "date_recorded": "2026-03-14",
+          "old_eta": "2026-03-14",
+          "new_eta": "2026-03-20"
+        },
+        {
+          "id": "ai-1773524595510-6aslmgu",
+          "date_recorded": "2026-03-14",
+          "old_eta": "2026-03-20",
+          "new_eta": "2026-03-23"
+        },
+        {
+          "id": "ai-1773525833159-2hbrcwd",
+          "date_recorded": "2026-03-14",
+          "old_eta": "2026-03-23",
+          "new_eta": "2026-03-17"
+        }
+      ],
+      "effort_updates": [
+        {
+          "id": "ai-1773524721397-znj3stm",
+          "date_recorded": "2026-03-14",
+          "old_effort_hours": 1,
+          "new_effort_hours": 4
+        },
+        {
+          "id": "ai-1773525007663-8tlac0p",
+          "date_recorded": "2026-03-14",
+          "old_effort_hours": 4,
+          "new_effort_hours": 3
+        },
+        {
+          "id": "ai-1773525856028-rm9n1u2",
+          "date_recorded": "2026-03-14",
+          "old_effort_hours": 3,
+          "new_effort_hours": 8
+        }
+      ],
+      "categories": [
+        "DV",
+        "Support",
+        "Debug"
+      ],
+      "concerns": [],
+      "project": "SR100",
+      "difficulty": "Easy"
+    },
+    {
+      "id": "ai-1773519820346-es9dxdz",
+      "title": "Lol",
+      "description": "Something",
+      "priority": 10,
+      "tags": [
+        "#default"
+      ],
+      "assigned_date": "2026-03-14",
+      "eta": "2026-03-14",
+      "effort_required_hours": 1,
+      "bug_numbers": [],
+      "status": "Completed",
+      "created_at": "2026-03-14T20:23:40.346Z",
+      "progress_updates": [],
+      "subtasks": [],
+      "eta_updates": [],
+      "effort_updates": [],
+      "categories": [],
+      "concerns": [],
+      "project": "",
+      "difficulty": "Easy"
+    },
+    {
+      "id": "ai-1773579216894-pl5te0w",
+      "title": "Sanity Regression Bringup",
+      "description": "Need to finish the bringup of all sanity cases in the development process.",
+      "priority": 1,
+      "tags": [
+        "#mx100",
+        "#riscv3000"
+      ],
+      "assigned_date": "2026-03-15",
+      "eta": "2026-04-10",
+      "effort_required_hours": 40,
+      "bug_numbers": [
+        77889900
+      ],
+      "status": "Open",
+      "created_at": "2026-03-15T12:53:36.894Z",
+      "progress_updates": [
+        {
+          "id": "ai-1773582897198-p1",
+          "text": "Sanity list finalized; 40 cases.",
+          "date_added": "2026-03-18",
+          "effort_consumed_hours": 8
+        }
+      ],
+      "eta_updates": [
+        {
+          "id": "ai-1773582897197-mb54umq",
+          "date_recorded": "2026-03-15",
+          "old_eta": "2026-03-31",
+          "new_eta": "2026-04-10"
+        }
+      ],
+      "effort_updates": [
+        {
+          "id": "ai-1773582897199-eff1",
+          "date_recorded": "2026-03-16",
+          "old_effort_hours": 32,
+          "new_effort_hours": 40
+        }
+      ],
+      "subtasks": [
+        {
+          "id": "ai-1773582897200-s1",
+          "title": "MX100 sanity cases bringup",
+          "status": "Ongoing",
+          "priority": 1,
+          "description": "Run and fix MX100 sanity set.",
+          "assigned_date": "2026-03-16",
+          "effort_required_hours": 20,
+          "progress_updates": [],
+          "categories": [
+            "DV"
+          ],
+          "concerns": [],
+          "project": "",
+          "effort_updates": [],
+          "done_date": "",
+          "difficulty": "Easy"
+        },
+        {
+          "id": "ai-1773582897201-s2",
+          "title": "RISC-V 3000 sanity bringup",
+          "status": "Open",
+          "priority": 2,
+          "description": "",
+          "progress_updates": [],
+          "categories": [
+            "DV"
+          ],
+          "concerns": [],
+          "project": "",
+          "effort_updates": [],
+          "done_date": "",
+          "difficulty": "Easy"
+        }
+      ],
+      "categories": [],
+      "concerns": [],
+      "project": "",
+      "difficulty": "Easy"
+    },
+    {
+      "id": "ai-1773600001001-r7a1",
+      "title": "AP3 VIP UVM Agent Refactor",
+      "description": "Refactor AP3 VIP agents to support configurable address width and burst types. Align with latest RTL interface changes for APB3.",
+      "priority": 3,
+      "tags": [
+        "#ap3",
+        "#vip"
+      ],
+      "assigned_date": "2026-02-18",
+      "eta": "2026-03-22",
+      "effort_required_hours": 26,
+      "bug_number": 0,
+      "status": "Ongoing",
+      "created_at": "2026-02-18T09:00:00.000Z",
+      "progress_updates": [
+        {
+          "id": "ai-1773666739091-4tfgzjz",
+          "text": "Added a new button",
+          "date_added": "2026-03-16",
+          "effort_consumed_hours": 1
+        },
+        {
+          "id": "ai-1774326950312-tmczgda",
+          "text": "New progress link added https://forkjoin.in/",
+          "date_added": "2026-03-24",
+          "effort_consumed_hours": 1
+        },
+        {
+          "id": "ai-1774326974616-0jdunzl",
+          "text": "Another link added https://forkjoin.in/",
+          "date_added": "2026-03-20",
+          "effort_consumed_hours": 1
+        },
+        {
+          "id": "ai-1774337639753-yzya7cr",
+          "text": "Cumulative Effort is all logged hours that are not in the report window — i.e. date_added before From or after To (same as taskEffortOutsideRangeMainAttributed / subtaskEffortOutsideRange). New Effort stays From–To inclusive. So cumulative = “spent so far excluding new effort in this range,” and Cumulative + New = total spent (for dated entries).",
+          "date_added": "2026-03-18",
+          "effort_consumed_hours": 1
+        }
+      ],
+      "bug_numbers": [],
+      "subtasks": [
+        {
+          "id": "ai-1773600001002-s1",
+          "title": "Update APB driver for 32/64-bit",
+          "status": "Done",
+          "priority": 3,
+          "description": "Extend driver to support configurable data width.",
+          "assigned_date": "2026-02-20",
+          "effort_required_hours": 8,
+          "progress_updates": [
+            {
+              "id": "ai-1773600001002-p1",
+              "text": "Driver skeleton done.",
+              "date_added": "2026-02-21",
+              "effort_consumed_hours": 5.5
+            }
+          ],
+          "categories": [
+            "DV"
+          ],
+          "concerns": [
+            {
+              "id": "ai-1773666831594-sdd95nc",
+              "description": "LOL missing",
+              "logged_date": "2026-03-16",
+              "status": "Open",
+              "addressed_date": "",
+              "addressed_comment": ""
+            }
+          ],
+          "project": "R0X",
+          "effort_updates": [],
+          "done_date": "",
+          "difficulty": "Easy"
+        },
+        {
+          "id": "ai-1773600001003-s2",
+          "title": "Add burst sequence support",
+          "status": "Ongoing",
+          "priority": 4,
+          "description": "Implement INCR and WRAP burst sequences.",
+          "assigned_date": "2026-03-01",
+          "effort_required_hours": 6,
+          "progress_updates": [],
+          "categories": [
+            "Design"
+          ],
+          "concerns": [],
+          "project": "",
+          "effort_updates": [],
+          "done_date": "",
+          "difficulty": "Easy"
+        },
+        {
+          "id": "ai-1773600001004-s3",
+          "title": "Update monitor for PSTRB",
+          "status": "Open",
+          "priority": 5,
+          "description": "",
+          "progress_updates": [],
+          "categories": [
+            "DV"
+          ],
+          "concerns": [],
+          "project": "",
+          "effort_updates": [],
+          "done_date": "",
+          "difficulty": "Easy"
+        }
+      ],
+      "eta_updates": [
+        {
+          "id": "ai-1773600001-eta1",
+          "date_recorded": "2026-02-25",
+          "old_eta": "2026-03-15",
+          "new_eta": "2026-03-22"
+        }
+      ],
+      "effort_updates": [
+        {
+          "id": "ai-1773600001-eff1",
+          "date_recorded": "2026-02-20",
+          "old_effort_hours": 16,
+          "new_effort_hours": 24
+        },
+        {
+          "id": "ai-1774334314406-5wt1gmd",
+          "date_recorded": "2026-03-24",
+          "old_effort_hours": 24,
+          "new_effort_hours": 26
+        }
+      ],
+      "categories": [
+        "Design",
+        "DV"
+      ],
+      "concerns": [
+        {
+          "id": "ai-1773666780109-pi8bnom",
+          "description": "Design but #440587",
+          "logged_date": "2026-03-16",
+          "status": "Open",
+          "addressed_date": "",
+          "addressed_comment": ""
+        },
+        {
+          "id": "ai-1773668957037-wlcokm6",
+          "description": "Design submission is delayed",
+          "logged_date": "2026-03-16",
+          "status": "Open",
+          "addressed_date": "",
+          "addressed_comment": ""
+        }
+      ],
+      "project": "F16",
+      "difficulty": "Easy"
+    },
+    {
+      "id": "ai-1773600002001-r7a2",
+      "title": "RTL Lint Cleanup for Top-Level",
+      "description": "Fix all RTL lint violations in top-level integration. Focus on width mismatches and combinational loops in clock domain crossing.",
+      "priority": 2,
+      "tags": [
+        "#rtl",
+        "#lint"
+      ],
+      "assigned_date": "2026-02-24",
+      "eta": "2026-03-08",
+      "effort_required_hours": 16,
+      "bug_number": 0,
+      "status": "Completed",
+      "created_at": "2026-02-24T10:30:00.000Z",
+      "progress_updates": [
+        {
+          "id": "ai-1773600002-p1",
+          "text": "Lint fixes merged for top_clock.",
+          "date_added": "2026-03-02",
+          "effort_consumed_hours": 6
+        }
+      ],
+      "bug_numbers": [],
+      "subtasks": [],
+      "eta_updates": [
+        {
+          "id": "ai-1773600002-eta1",
+          "date_recorded": "2026-02-28",
+          "old_eta": "2026-03-05",
+          "new_eta": "2026-03-08"
+        }
+      ],
+      "effort_updates": [],
+      "categories": [
+        "Design",
+        "Debug"
+      ],
+      "concerns": [],
+      "project": "",
+      "difficulty": "Easy"
+    },
+    {
+      "id": "ai-1773600003001-r7a3",
+      "title": "ASIC Synthesis Timing Closure",
+      "description": "Close timing on MX100 block. Multiple corners (BC/WC). Target 800 MHz. Fix hold violations in scan chain.",
+      "priority": 1,
+      "tags": [
+        "#mx100",
+        "#synthesis"
+      ],
+      "assigned_date": "2026-03-01",
+      "eta": "2026-04-15",
+      "effort_required_hours": 60,
+      "bug_numbers": [
+        77890101,
+        77890102
+      ],
+      "status": "Ongoing",
+      "created_at": "2026-03-01T08:00:00.000Z",
+      "progress_updates": [],
+      "subtasks": [
+        {
+          "id": "ai-1773600003002-s1",
+          "title": "BC corner setup closure",
+          "status": "Ongoing",
+          "priority": 1,
+          "description": "Fix setup in slow corner.",
+          "assigned_date": "2026-03-02",
+          "effort_required_hours": 20,
+          "progress_updates": [
+            {
+              "id": "ai-1773600003002-p1",
+              "text": "WNS improved to -0.2ns.",
+              "date_added": "2026-03-10",
+              "effort_consumed_hours": 12
+            }
+          ],
+          "categories": [
+            "Design"
+          ],
+          "concerns": [],
+          "project": "",
+          "effort_updates": [],
+          "done_date": "",
+          "difficulty": "Easy"
+        },
+        {
+          "id": "ai-1773600003003-s2",
+          "title": "Scan hold fixes",
+          "status": "Open",
+          "priority": 2,
+          "description": "Fix hold in scan mode.",
+          "progress_updates": [],
+          "categories": [
+            "Design"
+          ],
+          "concerns": [],
+          "project": "",
+          "effort_updates": [],
+          "done_date": "",
+          "difficulty": "Easy"
+        },
+        {
+          "id": "ai-1773600003004-s3",
+          "title": "WC corner validation",
+          "status": "Dropped",
+          "priority": 3,
+          "description": "Deferred to next phase.",
+          "progress_updates": [],
+          "categories": [
+            "DV"
+          ],
+          "concerns": [],
+          "project": "",
+          "effort_updates": [],
+          "done_date": "",
+          "difficulty": "Easy"
+        }
+      ],
+      "eta_updates": [
+        {
+          "id": "ai-1773600003-eta1",
+          "date_recorded": "2026-03-08",
+          "old_eta": "2026-04-01",
+          "new_eta": "2026-04-15"
+        },
+        {
+          "id": "ai-1773600003-eta2",
+          "date_recorded": "2026-03-12",
+          "old_eta": "2026-04-15",
+          "new_eta": "2026-04-18"
+        }
+      ],
+      "effort_updates": [
+        {
+          "id": "ai-1773600003-eff1",
+          "date_recorded": "2026-03-05",
+          "old_effort_hours": 48,
+          "new_effort_hours": 60
+        }
+      ],
+      "categories": [
+        "Design",
+        "DV"
+      ],
+      "concerns": [],
+      "project": "",
+      "difficulty": "Easy"
+    },
+    {
+      "id": "ai-1773600004001-r7a4",
+      "title": "VIP Regression Environment Setup",
+      "description": "Set up nightly regression for AP3 and AXI VIPs. Integrate with CI and add coverage exclusions for legacy code.",
+      "priority": 5,
+      "tags": [
+        "#vip",
+        "#ci"
+      ],
+      "assigned_date": "2026-03-03",
+      "eta": "2026-03-25",
+      "effort_required_hours": 20,
+      "bug_number": 0,
+      "status": "Open",
+      "created_at": "2026-03-03T11:00:00.000Z",
+      "progress_updates": [],
+      "bug_numbers": [],
+      "subtasks": [
+        {
+          "id": "ai-1773600004002-s1",
+          "title": "Jenkins pipeline for VIP",
+          "status": "Ongoing",
+          "priority": 5,
+          "description": "Create nightly job for AP3 and AXI.",
+          "assigned_date": "2026-03-05",
+          "effort_required_hours": 10,
+          "progress_updates": [
+            {
+              "id": "ai-1773600004002-p1",
+              "text": "Pipeline draft ready.",
+              "date_added": "2026-03-08",
+              "effort_consumed_hours": 4
+            }
+          ],
+          "categories": [
+            "Support"
+          ],
+          "concerns": [],
+          "project": "",
+          "effort_updates": [],
+          "done_date": "",
+          "difficulty": "Easy"
+        },
+        {
+          "id": "ai-1773600004003-s2",
+          "title": "Coverage exclusion list",
+          "status": "Open",
+          "priority": 6,
+          "description": "",
+          "progress_updates": [],
+          "categories": [
+            "DV"
+          ],
+          "concerns": [],
+          "project": "",
+          "effort_updates": [],
+          "done_date": "",
+          "difficulty": "Easy"
+        }
+      ],
+      "eta_updates": [
+        {
+          "id": "ai-1773600004-eta1",
+          "date_recorded": "2026-03-06",
+          "old_eta": "2026-03-20",
+          "new_eta": "2026-03-25"
+        }
+      ],
+      "effort_updates": [
+        {
+          "id": "ai-1773600004-eff1",
+          "date_recorded": "2026-03-04",
+          "old_effort_hours": 16,
+          "new_effort_hours": 20
+        }
+      ],
+      "categories": [
+        "DV",
+        "Support"
+      ],
+      "concerns": [],
+      "project": "",
+      "difficulty": "Easy"
+    },
+    {
+      "id": "ai-1773600005001-r7a5",
+      "title": "RTL Power Gating Review",
+      "description": "Review and document power gating strategy for all always-on vs switchable domains. Align with PD team for implementation.",
+      "priority": 4,
+      "tags": [
+        "#rtl",
+        "#power"
+      ],
+      "assigned_date": "2026-03-05",
+      "eta": "2026-03-19",
+      "effort_required_hours": 12,
+      "bug_number": 0,
+      "status": "Open",
+      "created_at": "2026-03-05T14:00:00.000Z",
+      "progress_updates": [],
+      "bug_numbers": [],
+      "subtasks": [
+        {
+          "id": "ai-1773600005002-s1",
+          "title": "Document power domains",
+          "status": "Open",
+          "priority": 4,
+          "description": "List always-on vs switchable.",
+          "progress_updates": [],
+          "categories": [
+            "Design"
+          ],
+          "concerns": [],
+          "project": "",
+          "effort_updates": [],
+          "done_date": "",
+          "difficulty": "Easy"
+        }
+      ],
+      "eta_updates": [],
+      "effort_updates": [
+        {
+          "id": "ai-1773600005-eff1",
+          "date_recorded": "2026-03-06",
+          "old_effort_hours": 8,
+          "new_effort_hours": 12
+        }
+      ],
+      "categories": [
+        "Design",
+        "Meeting"
+      ],
+      "concerns": [],
+      "project": "",
+      "difficulty": "Easy"
+    },
+    {
+      "id": "ai-1773600006001-r7a6",
+      "title": "AP3 Protocol Checker Enable",
+      "description": "Enable and tune AP3 protocol checkers in VIP. Add assertions for PREADY/PENABLE timing and wrap boundary.",
+      "priority": 6,
+      "tags": [
+        "#ap3",
+        "#vip"
+      ],
+      "assigned_date": "2026-03-07",
+      "eta": "2026-03-28",
+      "effort_required_hours": 18,
+      "bug_number": 0,
+      "status": "Open",
+      "created_at": "2026-03-07T09:15:00.000Z",
+      "progress_updates": [
+        {
+          "id": "ai-1773600006-p1",
+          "text": "PREADY/PENABLE assertions added.",
+          "date_added": "2026-03-12",
+          "effort_consumed_hours": 6
+        }
+      ],
+      "bug_numbers": [],
+      "subtasks": [
+        {
+          "id": "ai-1773600006002-s1",
+          "title": "Wrap boundary checks",
+          "status": "Open",
+          "priority": 6,
+          "description": "",
+          "progress_updates": [],
+          "categories": [
+            "DV"
+          ],
+          "concerns": [],
+          "project": "",
+          "effort_updates": [],
+          "done_date": "",
+          "difficulty": "Easy"
+        }
+      ],
+      "eta_updates": [
+        {
+          "id": "ai-1773600006-eta1",
+          "date_recorded": "2026-03-10",
+          "old_eta": "2026-03-22",
+          "new_eta": "2026-03-28"
+        }
+      ],
+      "effort_updates": [],
+      "categories": [
+        "DV"
+      ],
+      "concerns": [],
+      "project": "",
+      "difficulty": "Easy"
+    },
+    {
+      "id": "ai-1773600007001-r7a7",
+      "title": "RISC-V Core Integration Verification",
+      "description": "Verify RISC-V core integration with fabric. Run full system tests and debug any AXI protocol or cache coherency issues.",
+      "priority": 2,
+      "tags": [
+        "#riscv3000",
+        "#axi"
+      ],
+      "assigned_date": "2026-03-10",
+      "eta": "2026-04-05",
+      "effort_required_hours": 40,
+      "bug_numbers": [
+        77890200
+      ],
+      "status": "Ongoing",
+      "created_at": "2026-03-10T08:00:00.000Z",
+      "progress_updates": [],
+      "subtasks": [
+        {
+          "id": "ai-1773600007002-s1",
+          "title": "AXI compliance tests",
+          "status": "Done",
+          "priority": 2,
+          "description": "Run AXI protocol compliance suite.",
+          "assigned_date": "2026-03-11",
+          "effort_required_hours": 12,
+          "progress_updates": [
+            {
+              "id": "ai-1773600007002-p1",
+              "text": "All tests passing.",
+              "date_added": "2026-03-14",
+              "effort_consumed_hours": 12
+            }
+          ],
+          "categories": [
+            "DV"
+          ],
+          "concerns": [],
+          "project": "",
+          "effort_updates": [],
+          "done_date": "",
+          "difficulty": "Easy"
+        },
+        {
+          "id": "ai-1773600007003-s2",
+          "title": "Cache coherency scenarios",
+          "status": "Ongoing",
+          "priority": 3,
+          "description": "MOESI scenarios with multi-core.",
+          "assigned_date": "2026-03-15",
+          "effort_required_hours": 16,
+          "progress_updates": [],
+          "categories": [
+            "DV",
+            "Debug"
+          ],
+          "concerns": [],
+          "project": "",
+          "effort_updates": [],
+          "done_date": "",
+          "difficulty": "Easy"
+        },
+        {
+          "id": "ai-1773600007004-s3",
+          "title": "Debug AXI timeout failures",
+          "status": "Open",
+          "priority": 4,
+          "description": "",
+          "progress_updates": [],
+          "categories": [
+            "Debug"
+          ],
+          "concerns": [],
+          "project": "",
+          "effort_updates": [],
+          "done_date": "",
+          "difficulty": "Easy"
+        }
+      ],
+      "eta_updates": [
+        {
+          "id": "ai-1773600007-eta1",
+          "date_recorded": "2026-03-12",
+          "old_eta": "2026-03-28",
+          "new_eta": "2026-04-05"
+        }
+      ],
+      "effort_updates": [
+        {
+          "id": "ai-1773600007-eff1",
+          "date_recorded": "2026-03-11",
+          "old_effort_hours": 32,
+          "new_effort_hours": 40
+        }
+      ],
+      "categories": [
+        "DV",
+        "Debug"
+      ],
+      "concerns": [],
+      "project": "",
+      "difficulty": "Easy"
+    },
+    {
+      "id": "ai-1773600008001-r7a8",
+      "title": "DFT Scan Insertion Review",
+      "description": "Review scan insertion results for MX100. Fix DRC and verify shift/capture patterns with ATPG.",
+      "priority": 7,
+      "tags": [
+        "#mx100",
+        "#dft"
+      ],
+      "assigned_date": "2026-03-11",
+      "eta": "2026-04-01",
+      "effort_required_hours": 28,
+      "bug_number": 0,
+      "status": "Open",
+      "created_at": "2026-03-11T10:00:00.000Z",
+      "progress_updates": [
+        {
+          "id": "ai-1773600008-p1",
+          "text": "DRC review completed.",
+          "date_added": "2026-03-15",
+          "effort_consumed_hours": 10
+        }
+      ],
+      "bug_numbers": [],
+      "subtasks": [
+        {
+          "id": "ai-1773600008002-s1",
+          "title": "ATPG pattern run",
+          "status": "Ongoing",
+          "priority": 7,
+          "description": "Generate and verify shift/capture.",
+          "assigned_date": "2026-03-14",
+          "effort_required_hours": 14,
+          "progress_updates": [],
+          "categories": [
+            "Design"
+          ],
+          "concerns": [],
+          "project": "",
+          "effort_updates": [],
+          "done_date": "",
+          "difficulty": "Easy"
+        }
+      ],
+      "eta_updates": [
+        {
+          "id": "ai-1773600008-eta1",
+          "date_recorded": "2026-03-13",
+          "old_eta": "2026-03-25",
+          "new_eta": "2026-04-01"
+        }
+      ],
+      "effort_updates": [
+        {
+          "id": "ai-1773600008-eff1",
+          "date_recorded": "2026-03-12",
+          "old_effort_hours": 24,
+          "new_effort_hours": 28
+        }
+      ],
+      "categories": [
+        "Design",
+        "Support"
+      ],
+      "concerns": [],
+      "project": "",
+      "difficulty": "Easy"
+    },
+    {
+      "id": "ai-1773600009001-r7a9",
+      "title": "UVM Register Model Update for AP3",
+      "description": "Update UVM register model to match RTL address map and new AP3 control registers. Regenerate from RDL.",
+      "priority": 4,
+      "tags": [
+        "#ap3",
+        "#uvm"
+      ],
+      "assigned_date": "2026-03-12",
+      "eta": "2026-03-26",
+      "effort_required_hours": 14,
+      "bug_number": 0,
+      "status": "Open",
+      "created_at": "2026-03-12T13:00:00.000Z",
+      "progress_updates": [],
+      "bug_numbers": [],
+      "subtasks": [
+        {
+          "id": "ai-1773600009002-s1",
+          "title": "RDL to UVM reg gen",
+          "status": "Ongoing",
+          "priority": 4,
+          "description": "Run reg gen from RDL and integrate.",
+          "assigned_date": "2026-03-13",
+          "effort_required_hours": 8,
+          "progress_updates": [
+            {
+              "id": "ai-1773600009002-p1",
+              "text": "RDL parsed; reg block generated.",
+              "date_added": "2026-03-14",
+              "effort_consumed_hours": 4
+            }
+          ],
+          "categories": [
+            "DV"
+          ],
+          "concerns": [],
+          "project": "",
+          "effort_updates": [],
+          "done_date": "",
+          "difficulty": "Easy"
+        },
+        {
+          "id": "ai-1773600009003-s2",
+          "title": "Update address map doc",
+          "status": "Open",
+          "priority": 5,
+          "description": "",
+          "progress_updates": [],
+          "categories": [
+            "Support"
+          ],
+          "concerns": [],
+          "project": "",
+          "effort_updates": [],
+          "done_date": "",
+          "difficulty": "Easy"
+        }
+      ],
+      "eta_updates": [
+        {
+          "id": "ai-1773600009-eta1",
+          "date_recorded": "2026-03-13",
+          "old_eta": "2026-03-22",
+          "new_eta": "2026-03-26"
+        }
+      ],
+      "effort_updates": [],
+      "categories": [
+        "DV",
+        "Design"
+      ],
+      "concerns": [],
+      "project": "",
+      "difficulty": "Easy"
+    },
+    {
+      "id": "ai-1773600010001-r7a10",
+      "title": "Gate-Level Simulation Bringup",
+      "description": "Bring up gate-level sim for MX100 with SDF. Correlate with RTL and run smoke tests.",
+      "priority": 8,
+      "tags": [
+        "#mx100",
+        "#gls"
+      ],
+      "assigned_date": "2026-03-13",
+      "eta": "2026-04-08",
+      "effort_required_hours": 32,
+      "bug_number": 0,
+      "status": "Open",
+      "created_at": "2026-03-13T09:00:00.000Z",
+      "progress_updates": [],
+      "bug_numbers": [],
+      "subtasks": [
+        {
+          "id": "ai-1773600010002-s1",
+          "title": "SDF annotation and back-annotate",
+          "status": "Open",
+          "priority": 8,
+          "description": "Gate-level netlist + SDF load.",
+          "progress_updates": [],
+          "categories": [
+            "DV"
+          ],
+          "concerns": [],
+          "project": "",
+          "effort_updates": [],
+          "done_date": "",
+          "difficulty": "Easy"
+        },
+        {
+          "id": "ai-1773600010003-s2",
+          "title": "Smoke test suite",
+          "status": "Dropped",
+          "priority": 9,
+          "description": "Moved to separate task.",
+          "progress_updates": [],
+          "categories": [
+            "Debug"
+          ],
+          "concerns": [],
+          "project": "",
+          "effort_updates": [],
+          "done_date": "",
+          "difficulty": "Easy"
+        }
+      ],
+      "eta_updates": [
+        {
+          "id": "ai-1773600010-eta1",
+          "date_recorded": "2026-03-14",
+          "old_eta": "2026-04-01",
+          "new_eta": "2026-04-08"
+        }
+      ],
+      "effort_updates": [
+        {
+          "id": "ai-1773600010-eff1",
+          "date_recorded": "2026-03-13",
+          "old_effort_hours": 28,
+          "new_effort_hours": 32
+        }
+      ],
+      "categories": [
+        "DV",
+        "Debug"
+      ],
+      "concerns": [],
+      "project": "",
+      "difficulty": "Easy"
+    },
+    {
+      "id": "ai-1773600011001-r7a11",
+      "title": "AP3 VIP Coverage Closure",
+      "description": "Drive code and functional coverage for AP3 VIP to 95%. Add cross-coverage for burst types and alignments.",
+      "priority": 5,
+      "tags": [
+        "#ap3",
+        "#coverage"
+      ],
+      "assigned_date": "2026-03-14",
+      "eta": "2026-04-12",
+      "effort_required_hours": 22,
+      "bug_number": 0,
+      "status": "Open",
+      "created_at": "2026-03-14T11:00:00.000Z",
+      "progress_updates": [],
+      "bug_numbers": [],
+      "subtasks": [
+        {
+          "id": "ai-1773600011002-s1",
+          "title": "Add burst cross bins",
+          "status": "Ongoing",
+          "priority": 5,
+          "description": "Cross cover burst_type x alignment.",
+          "assigned_date": "2026-03-16",
+          "effort_required_hours": 10,
+          "progress_updates": [],
+          "categories": [
+            "DV"
+          ],
+          "concerns": [],
+          "project": "",
+          "effort_updates": [],
+          "done_date": "",
+          "difficulty": "Easy"
+        },
+        {
+          "id": "ai-1773600011003-s2",
+          "title": "Exclude legacy code",
+          "status": "Open",
+          "priority": 6,
+          "description": "Add coverage exclude for legacy blocks.",
+          "progress_updates": [],
+          "categories": [
+            "Support"
+          ],
+          "concerns": [],
+          "project": "",
+          "effort_updates": [],
+          "done_date": "",
+          "difficulty": "Easy"
+        },
+        {
+          "id": "ai-1773600011004-s3",
+          "title": "Coverage report automation",
+          "status": "Done",
+          "priority": 5,
+          "description": "Script to merge and report.",
+          "assigned_date": "2026-03-12",
+          "effort_required_hours": 4,
+          "progress_updates": [
+            {
+              "id": "ai-1773600011004-p1",
+              "text": "Script checked in.",
+              "date_added": "2026-03-13",
+              "effort_consumed_hours": 4
+            }
+          ],
+          "categories": [
+            "Support"
+          ],
+          "concerns": [],
+          "project": "",
+          "effort_updates": [],
+          "done_date": "",
+          "difficulty": "Easy"
+        }
+      ],
+      "eta_updates": [
+        {
+          "id": "ai-1773600011-eta1",
+          "date_recorded": "2026-03-15",
+          "old_eta": "2026-04-05",
+          "new_eta": "2026-04-12"
+        }
+      ],
+      "effort_updates": [
+        {
+          "id": "ai-1773600011-eff1",
+          "date_recorded": "2026-03-14",
+          "old_effort_hours": 18,
+          "new_effort_hours": 22
+        }
+      ],
+      "categories": [
+        "DV"
+      ],
+      "concerns": [],
+      "project": "",
+      "difficulty": "Easy"
+    },
+    {
+      "id": "ai-1773600012001-r7a12",
+      "title": "RTL Code Freeze Documentation",
+      "description": "Document RTL code freeze process and branching strategy for tape-out. Update wiki and run knowledge share.",
+      "priority": 3,
+      "tags": [
+        "#process",
+        "#tapeout"
+      ],
+      "assigned_date": "2026-03-15",
+      "eta": "2026-03-29",
+      "effort_required_hours": 8,
+      "bug_number": 0,
+      "status": "Open",
+      "created_at": "2026-03-15T08:00:00.000Z",
+      "progress_updates": [
+        {
+          "id": "ai-1773600012-p1",
+          "text": "Draft doc reviewed by team.",
+          "date_added": "2026-03-18",
+          "effort_consumed_hours": 3
+        }
+      ],
+      "bug_numbers": [],
+      "subtasks": [
+        {
+          "id": "ai-1773600012002-s1",
+          "title": "Wiki page update",
+          "status": "Open",
+          "priority": 3,
+          "description": "",
+          "progress_updates": [],
+          "categories": [
+            "Support"
+          ],
+          "concerns": [],
+          "project": "",
+          "effort_updates": [],
+          "done_date": "",
+          "difficulty": "Easy"
+        }
+      ],
+      "eta_updates": [],
+      "effort_updates": [],
+      "categories": [
+        "Support",
+        "Meeting"
+      ],
+      "concerns": [],
+      "project": "",
+      "difficulty": "Easy"
+    },
+    {
+      "id": "ai-1773600013001-r7a13",
+      "title": "AXI VIP Stress Tests",
+      "description": "Add stress tests for AXI VIP: back-pressure, narrow transfers, out-of-order responses. Run in nightly.",
+      "priority": 6,
+      "tags": [
+        "#axi",
+        "#vip"
+      ],
+      "assigned_date": "2026-03-16",
+      "eta": "2026-04-02",
+      "effort_required_hours": 20,
+      "bug_number": 0,
+      "status": "Open",
+      "created_at": "2026-03-16T10:00:00.000Z",
+      "progress_updates": [],
+      "bug_numbers": [],
+      "subtasks": [
+        {
+          "id": "ai-1773600013002-s1",
+          "title": "Back-pressure test",
+          "status": "Open",
+          "priority": 6,
+          "description": "Stress test with full back-pressure.",
+          "progress_updates": [],
+          "categories": [
+            "DV"
+          ],
+          "concerns": [],
+          "project": "",
+          "effort_updates": [],
+          "done_date": "",
+          "difficulty": "Easy"
+        },
+        {
+          "id": "ai-1773600013003-s2",
+          "title": "Out-of-order response test",
+          "status": "Open",
+          "priority": 7,
+          "description": "",
+          "progress_updates": [],
+          "categories": [
+            "DV"
+          ],
+          "concerns": [],
+          "project": "",
+          "effort_updates": [],
+          "done_date": "",
+          "difficulty": "Easy"
+        }
+      ],
+      "eta_updates": [
+        {
+          "id": "ai-1773600013-eta1",
+          "date_recorded": "2026-03-17",
+          "old_eta": "2026-03-28",
+          "new_eta": "2026-04-02"
+        }
+      ],
+      "effort_updates": [
+        {
+          "id": "ai-1773600013-eff1",
+          "date_recorded": "2026-03-16",
+          "old_effort_hours": 16,
+          "new_effort_hours": 20
+        }
+      ],
+      "categories": [
+        "DV"
+      ],
+      "concerns": [],
+      "project": "",
+      "difficulty": "Easy"
+    },
+    {
+      "id": "ai-1773600014001-r7a14",
+      "title": "Clock Domain Crossing Audit",
+      "description": "Audit all CDC paths in top-level. Document synchronizers and add waiver for verified false paths.",
+      "priority": 1,
+      "tags": [
+        "#rtl",
+        "#cdc"
+      ],
+      "assigned_date": "2026-03-18",
+      "eta": "2026-04-20",
+      "effort_required_hours": 26,
+      "bug_numbers": [
+        77890300
+      ],
+      "status": "Ongoing",
+      "created_at": "2026-03-18T09:00:00.000Z",
+      "progress_updates": [],
+      "subtasks": [
+        {
+          "id": "ai-1773600014002-s1",
+          "title": "CDC tool run and waivers",
+          "status": "Ongoing",
+          "priority": 1,
+          "description": "Run CDC tool and add waivers for false paths.",
+          "assigned_date": "2026-03-20",
+          "effort_required_hours": 14,
+          "progress_updates": [
+            {
+              "id": "ai-1773600014002-p1",
+              "text": "First pass complete; 12 waivers added.",
+              "date_added": "2026-03-22",
+              "effort_consumed_hours": 8
+            }
+          ],
+          "categories": [
+            "Design",
+            "Debug"
+          ],
+          "concerns": [],
+          "project": "",
+          "effort_updates": [],
+          "done_date": "",
+          "difficulty": "Easy"
+        },
+        {
+          "id": "ai-1773600014003-s2",
+          "title": "Synchronizer documentation",
+          "status": "Open",
+          "priority": 2,
+          "description": "",
+          "progress_updates": [],
+          "categories": [
+            "Design"
+          ],
+          "concerns": [],
+          "project": "",
+          "effort_updates": [],
+          "done_date": "",
+          "difficulty": "Easy"
+        },
+        {
+          "id": "ai-1774319929272-6bh16n3",
+          "title": "Power Validation",
+          "description": "Complete the power validation of the task.",
+          "priority": 1,
+          "assigned_date": "2026-03-19",
+          "effort_required_hours": 2,
+          "status": "Open",
+          "progress_updates": [],
+          "categories": [
+            "DV"
+          ],
+          "project": "F16",
+          "concerns": [],
+          "effort_updates": [],
+          "done_date": "",
+          "difficulty": "Easy"
+        }
+      ],
+      "eta_updates": [
+        {
+          "id": "ai-1773600014-eta1",
+          "date_recorded": "2026-03-19",
+          "old_eta": "2026-04-15",
+          "new_eta": "2026-04-20"
+        }
+      ],
+      "effort_updates": [
+        {
+          "id": "ai-1773600014-eff1",
+          "date_recorded": "2026-03-18",
+          "old_effort_hours": 22,
+          "new_effort_hours": 26
+        }
+      ],
+      "categories": [
+        "Design",
+        "Debug"
+      ],
+      "done_date": "2026-03-16",
+      "concerns": [],
+      "project": "F16",
+      "difficulty": "Easy"
+    },
+    {
+      "id": "ai-1773600015001-r7a15",
+      "title": "Formal Property Sign-Off for AP3",
+      "description": "Run formal property proof for AP3 bridge. Sign off req-grant and data path properties.",
+      "priority": 9,
+      "tags": [
+        "#ap3",
+        "#formal"
+      ],
+      "assigned_date": "2026-04-01",
+      "eta": "2026-04-25",
+      "effort_required_hours": 36,
+      "bug_number": 0,
+      "status": "Dropped",
+      "created_at": "2026-04-01T08:00:00.000Z",
+      "progress_updates": [
+        {
+          "id": "ai-1773600015-p1",
+          "text": "Scope reduced; deferred to next quarter.",
+          "date_added": "2026-04-05",
+          "effort_consumed_hours": 4
+        }
+      ],
+      "bug_numbers": [],
+      "subtasks": [
+        {
+          "id": "ai-1773600015002-s1",
+          "title": "Write and bind properties",
+          "status": "Done",
+          "priority": 9,
+          "description": "Req-grant and data path props written.",
+          "assigned_date": "2026-04-02",
+          "effort_required_hours": 12,
+          "progress_updates": [
+            {
+              "id": "ai-1773600015002-p1",
+              "text": "Properties bound; 2 failing.",
+              "date_added": "2026-04-04",
+              "effort_consumed_hours": 12
+            }
+          ],
+          "categories": [
+            "DV"
+          ],
+          "concerns": [],
+          "project": "",
+          "effort_updates": [],
+          "done_date": "",
+          "difficulty": "Easy"
+        },
+        {
+          "id": "ai-1773600015003-s2",
+          "title": "Debug failing proofs",
+          "status": "Dropped",
+          "priority": 10,
+          "description": "Task deferred with parent.",
+          "progress_updates": [],
+          "categories": [
+            "Debug"
+          ],
+          "concerns": [],
+          "project": "",
+          "effort_updates": [],
+          "done_date": "",
+          "difficulty": "Easy"
+        }
+      ],
+      "eta_updates": [
+        {
+          "id": "ai-1773600015-eta1",
+          "date_recorded": "2026-04-02",
+          "old_eta": "2026-04-25",
+          "new_eta": "2026-05-01"
+        }
+      ],
+      "effort_updates": [
+        {
+          "id": "ai-1773600015-eff1",
+          "date_recorded": "2026-04-01",
+          "old_effort_hours": 30,
+          "new_effort_hours": 36
+        }
+      ],
+      "categories": [
+        "DV",
+        "Design"
+      ],
+      "concerns": [],
+      "project": "",
+      "difficulty": "Easy"
+    },
+    {
+      "id": "ai-1773636007476-qpkcjrs",
+      "title": "Testing The Methodology's Stability In SoC Ecosystem",
+      "description": "SoC testing",
+      "priority": 10,
+      "tags": [
+        "#default"
+      ],
+      "assigned_date": "2026-03-31",
+      "eta": "2026-04-10",
+      "effort_required_hours": 16,
+      "bug_numbers": [],
+      "status": "Open",
+      "created_at": "2026-03-16T04:40:07.476Z",
+      "progress_updates": [],
+      "eta_updates": [],
+      "effort_updates": [],
+      "subtasks": [],
+      "categories": [
+        "DV"
+      ],
+      "concerns": [],
+      "project": "",
+      "difficulty": "Easy"
+    },
+    {
+      "id": "ai-1774021610625-9qxz94g",
+      "title": "Updating Adity's Resume",
+      "description": "Aditya ka resume bana bhejo\ndfgksldnmsdv\n'sdam;lsdmv1\n1,'1m;m12\n1,/sdvs';v,sv\ns,f\n',dsf';,'wd\nasf\n'.,",
+      "priority": 1,
+      "tags": [
+        "#default"
+      ],
+      "assigned_date": "2026-03-19",
+      "eta": "2026-03-27",
+      "effort_required_hours": 16,
+      "bug_numbers": [],
+      "status": "Open",
+      "created_at": "2026-03-20T15:46:50.625Z",
+      "progress_updates": [
+        {
+          "id": "ai-1774021621677-k95jeia",
+          "text": "1. Name updtaed",
+          "date_added": "2026-03-20",
+          "effort_consumed_hours": 1
+        },
+        {
+          "id": "ai-1774021629664-vueno2d",
+          "text": "Address updated",
+          "date_added": "2026-03-20",
+          "effort_consumed_hours": 1
+        },
+        {
+          "id": "ai-1774021646704-i6d8guj",
+          "text": "Skills updated",
+          "date_added": "2026-03-20",
+          "effort_consumed_hours": 5
+        }
+      ],
+      "eta_updates": [],
+      "effort_updates": [],
+      "concerns": [],
+      "subtasks": [
+        {
+          "id": "ai-1774021735958-kfizjv8",
+          "title": "Send Resume To EDA Companies",
+          "description": "dfsadsdvvsvsvsvsvsvsv",
+          "priority": 1,
+          "assigned_date": "2026-03-20",
+          "effort_required_hours": 4,
+          "status": "Open",
+          "progress_updates": [
+            {
+              "id": "ai-1774021742753-bzipc52",
+              "text": "sdfdsdflj;lsdjfm;mlsdv",
+              "date_added": "2026-03-20",
+              "effort_consumed_hours": 1
+            }
+          ],
+          "categories": [
+            "DV"
+          ],
+          "concerns": [],
+          "project": "",
+          "effort_updates": [],
+          "done_date": "",
+          "difficulty": "Easy"
+        }
+      ],
+      "categories": [
+        "DV"
+      ],
+      "done_date": "",
+      "project": "",
+      "difficulty": "Easy"
+    },
+    {
+      "id": "ai-1774371445603-aenapmc",
+      "title": "Attend Amit's Daughter's Wedding",
+      "description": "Something",
+      "priority": 1,
+      "tags": [
+        "#default"
+      ],
+      "assigned_date": "2026-03-24",
+      "eta": "2026-04-10",
+      "effort_required_hours": 16,
+      "bug_numbers": [],
+      "status": "Open",
+      "difficulty": "Easy",
+      "created_at": "2026-03-24T16:57:25.603Z",
+      "progress_updates": [
+        {
+          "id": "ai-1774371477331-r9gahpx",
+          "text": "Sacrifice found",
+          "date_added": "2026-03-26",
+          "effort_consumed_hours": 4
+        },
+        {
+          "id": "ai-1774371457749-f7dg0tz",
+          "text": "Sanity cleaed",
+          "date_added": "2026-04-01",
+          "effort_consumed_hours": 2
+        }
+      ],
+      "eta_updates": [],
+      "effort_updates": [],
+      "concerns": [],
+      "subtasks": [],
+      "categories": [
+        "Support"
+      ],
+      "project": "Exynos",
+      "done_date": ""
+    }
+  ],
+  "settings": {
+    "priorityColors": {
+      "1": "#2e4a6e",
+      "2": "#2e4a6e",
+      "3": "#2e4a6e",
+      "4": "#2e4a6e",
+      "5": "#7a5c2e",
+      "6": "#7a5c2e",
+      "7": "#7a5c2e",
+      "8": "#7a5c2e",
+      "9": "#7a3d3d",
+      "10": "#7a3d3d"
+    },
+    "categories": [
+      "Design",
+      "DV",
+      "Support",
+      "Debug",
+      "Meeting",
+      "Skillup"
+    ],
+    "workingHoursPerDay": 8,
+    "dayOffs": [
+      {
+        "id": "ai-1774202445030-v7481nc",
+        "date": "2026-03-20",
+        "type": "full",
+        "reason": "PTO",
+        "hoursOff": 0
+      },
+      {
+        "id": "ai-1774202460922-qltvex6",
+        "date": "2026-03-19",
+        "type": "partial",
+        "reason": "Sick",
+        "hoursOff": 4
+      },
+      {
+        "id": "ai-1774202485515-zkl28sa",
+        "date": "2026-03-23",
+        "type": "full",
+        "reason": "PTO",
+        "hoursOff": 0
+      },
+      {
+        "id": "ai-1774202488620-223syn6",
+        "date": "2026-03-24",
+        "type": "full",
+        "reason": "PTO",
+        "hoursOff": 0
+      },
+      {
+        "id": "ai-1774202491253-79gtbja",
+        "date": "2026-03-25",
+        "type": "full",
+        "reason": "PTO",
+        "hoursOff": 0
+      }
+    ],
+    "projects": [
+      "F16",
+      "R0X",
+      "SR100",
+      "Exynos"
+    ]
+  }
+}
