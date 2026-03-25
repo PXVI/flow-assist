@@ -1,0 +1,14 @@
+{
+  "name": "task-tracker",
+  "version": "0.1.0",
+  "description": "Local task manager",
+  "author": "k-sva",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron .",
+    "start:debug": "electron . --flowassist-debug"
+  },
+  "devDependencies": {
+    "electron": "^29.0.0"
+  }
+}

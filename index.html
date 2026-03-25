@@ -1,0 +1,275 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>FlowAssist – Task Tracker</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <aside class="sidebar">
+    <h2 class="sidebar-title">FlowAssist</h2>
+    <nav class="sidebar-nav">
+      <button type="button" class="nav-btn active" data-view="list">List</button>
+      <button type="button" class="nav-btn" data-view="calendar">Calendar</button>
+      <button type="button" class="nav-btn" data-view="summary">Summary</button>
+    </nav>
+    <div class="sidebar-settings">
+      <button type="button" id="settings-btn" class="settings-btn" title="Settings">⚙ Settings</button>
+    </div>
+  </aside>
+
+  <main class="content">
+    <div id="settings-modal" class="modal" aria-hidden="true">
+      <div class="modal-backdrop"></div>
+      <div class="modal-content modal-content-settings" role="dialog" aria-labelledby="settings-dialog-title" aria-modal="true">
+        <header class="settings-modal-header">
+          <h3 id="settings-dialog-title" class="settings-modal-title">Settings</h3>
+          <p class="settings-modal-lede">Defaults for tasks, lists, and the calendar. Changes apply after you save.</p>
+        </header>
+
+        <div class="settings-modal-body">
+          <section class="settings-section" aria-labelledby="settings-section-general">
+            <h4 id="settings-section-general" class="settings-section-heading">General</h4>
+
+            <div class="settings-field">
+              <label for="setting-working-hours" class="settings-label">Ideal working hours per day</label>
+              <p class="settings-hint">Used for bandwidth, summary utilization, and partial day-off math in the calendar.</p>
+              <input type="number" id="setting-working-hours" class="settings-input settings-input-number" min="0.5" max="24" step="0.5" value="8" title="Used for bandwidth and day-off calculations">
+            </div>
+
+            <div class="settings-field">
+              <label for="setting-categories" class="settings-label">Category types</label>
+              <p class="settings-hint">Comma-separated labels shown in task category pickers.</p>
+              <input type="text" id="setting-categories" class="settings-input" placeholder="e.g. Design, Debug, Support" autocomplete="off">
+            </div>
+
+            <div class="settings-field">
+              <label for="setting-projects" class="settings-label">Project names</label>
+              <p class="settings-hint">Comma-separated list for the Project dropdown on tasks and sub-tasks.</p>
+              <input type="text" id="setting-projects" class="settings-input" placeholder="e.g. F35, Alpha, Beta" autocomplete="off">
+            </div>
+          </section>
+
+          <section class="settings-section" aria-labelledby="settings-section-priority">
+            <h4 id="settings-section-priority" class="settings-section-heading">Priority bar colors</h4>
+            <p class="settings-hint settings-section-intro">Pick a background for each priority (1–10). Main task bars use this color; sub-tasks use a darker tint automatically.</p>
+            <div class="settings-priority-grid">
+              <div class="settings-priority-cell">
+                <label for="setting-priority-1" class="settings-priority-label">P1</label>
+                <input type="color" id="setting-priority-1" class="settings-color-input" value="#2e4a6e" title="Priority 1">
+              </div>
+              <div class="settings-priority-cell">
+                <label for="setting-priority-2" class="settings-priority-label">P2</label>
+                <input type="color" id="setting-priority-2" class="settings-color-input" value="#2e4a6e" title="Priority 2">
+              </div>
+              <div class="settings-priority-cell">
+                <label for="setting-priority-3" class="settings-priority-label">P3</label>
+                <input type="color" id="setting-priority-3" class="settings-color-input" value="#2e4a6e" title="Priority 3">
+              </div>
+              <div class="settings-priority-cell">
+                <label for="setting-priority-4" class="settings-priority-label">P4</label>
+                <input type="color" id="setting-priority-4" class="settings-color-input" value="#2e4a6e" title="Priority 4">
+              </div>
+              <div class="settings-priority-cell">
+                <label for="setting-priority-5" class="settings-priority-label">P5</label>
+                <input type="color" id="setting-priority-5" class="settings-color-input" value="#7a5c2e" title="Priority 5">
+              </div>
+              <div class="settings-priority-cell">
+                <label for="setting-priority-6" class="settings-priority-label">P6</label>
+                <input type="color" id="setting-priority-6" class="settings-color-input" value="#7a5c2e" title="Priority 6">
+              </div>
+              <div class="settings-priority-cell">
+                <label for="setting-priority-7" class="settings-priority-label">P7</label>
+                <input type="color" id="setting-priority-7" class="settings-color-input" value="#7a5c2e" title="Priority 7">
+              </div>
+              <div class="settings-priority-cell">
+                <label for="setting-priority-8" class="settings-priority-label">P8</label>
+                <input type="color" id="setting-priority-8" class="settings-color-input" value="#7a5c2e" title="Priority 8">
+              </div>
+              <div class="settings-priority-cell">
+                <label for="setting-priority-9" class="settings-priority-label">P9</label>
+                <input type="color" id="setting-priority-9" class="settings-color-input" value="#7a3d3d" title="Priority 9">
+              </div>
+              <div class="settings-priority-cell">
+                <label for="setting-priority-10" class="settings-priority-label">P10</label>
+                <input type="color" id="setting-priority-10" class="settings-color-input" value="#7a3d3d" title="Priority 10">
+              </div>
+            </div>
+          </section>
+        </div>
+
+        <footer class="settings-modal-footer">
+          <button type="button" id="settings-cancel-btn" class="btn-secondary settings-footer-btn">Cancel</button>
+          <button type="button" id="settings-save-btn" class="btn-primary settings-footer-btn settings-save-btn">Save settings</button>
+        </footer>
+      </div>
+    </div>
+    <div id="view-list" class="view-panel active">
+      <div class="main-tasks-heading-row">
+        <h3 class="main-tasks-heading">Main Tasks List</h3>
+        <div class="filter-dropdown-wrap main-task-filter-wrap">
+          <button type="button" id="main-task-filter-btn" class="filter-dropdown-btn" title="Sort tasks">&#9662; Sort</button>
+          <div id="main-task-filter-menu" class="filter-dropdown-menu">
+            <button type="button" class="filter-option" data-sort-by="date_added" data-sort-dir="asc">Date added (oldest first)</button>
+            <button type="button" class="filter-option" data-sort-by="date_added" data-sort-dir="desc">Date added (newest first)</button>
+            <button type="button" class="filter-option" data-sort-by="priority" data-sort-dir="asc">Priority (low to high)</button>
+            <button type="button" class="filter-option" data-sort-by="priority" data-sort-dir="desc">Priority (high to low)</button>
+            <button type="button" class="filter-option" data-sort-by="eta" data-sort-dir="asc">ETA (oldest first)</button>
+            <button type="button" class="filter-option" data-sort-by="eta" data-sort-dir="desc">ETA (newest first)</button>
+          </div>
+        </div>
+      </div>
+      <div id="task-list"></div>
+      <hr class="add-task-separator">
+      <section class="add-new-task-section">
+        <div class="add-new-task-toggles">
+          <button type="button" id="add-new-task-btn" class="btn-update-toggle btn-add-new-task">Add New Task</button>
+        </div>
+        <div id="add-new-task-block" class="add-new-task-block task-toggleable-block task-block-collapsed">
+          <div class="add-task-fields">
+            <label class="add-task-label">
+              Title
+              <input type="text" id="task-title" class="task-main-input add-task-input" placeholder="What needs to be done?">
+            </label>
+            <label class="add-task-label">
+              Project
+              <select id="task-project" class="add-task-input task-project-select" aria-label="Project"></select>
+            </label>
+            <label class="add-task-label">
+              Description
+              <textarea id="task-description" class="task-description-input add-task-input auto-resize" placeholder="Description (optional)…" rows="2"></textarea>
+            </label>
+            <div class="add-task-label add-task-category-row">
+              Category
+              <div id="add-task-category-dropdown"></div>
+            </div>
+            <div class="add-task-grid">
+              <label class="add-task-label">
+                Priority
+                <input type="number" id="task-priority" class="add-task-input" placeholder="1–10" min="1" max="10" title="Priority 1-10">
+              </label>
+              <label class="add-task-label">
+                Difficulty
+                <select id="task-difficulty" class="add-task-input" aria-label="Difficulty">
+                  <option value="Very Easy">Very Easy</option>
+                  <option value="Easy" selected>Easy</option>
+                  <option value="Moderate">Moderate</option>
+                  <option value="Hard">Hard</option>
+                  <option value="Very Hard">Very Hard</option>
+                </select>
+              </label>
+              <label class="add-task-label">
+                Tags
+                <input type="text" id="task-tags" class="add-task-input" placeholder="e.g. tag1, tag2" title="Default: default">
+              </label>
+              <label class="add-task-label">
+                Assigned
+                <input type="date" id="task-assigned" class="add-task-input" placeholder="YYYY-MM-DD">
+              </label>
+              <label class="add-task-label">
+                ETA
+                <input type="date" id="task-eta" class="add-task-input" placeholder="YYYY-MM-DD">
+              </label>
+              <label class="add-task-label">
+                Effort (hrs)
+                <input type="number" id="task-effort" class="add-task-input" placeholder="hrs" min="0" step="0.5" title="Shown in days (÷8)">
+              </label>
+              <label class="add-task-label">
+                Bug ID
+                <input type="text" id="task-bug" class="add-task-input" placeholder="—" title="Comma-separated bug IDs (e.g. 123, 456)">
+              </label>
+            </div>
+            <div class="add-task-actions">
+              <button type="button" id="add-task-btn" class="btn-primary">Add Task</button>
+            </div>
+          </div>
+        </div>
+      </section>
+      <hr class="add-task-separator">
+      <section class="completed-tasks-section">
+        <h3 class="completed-tasks-heading">Done</h3>
+        <div id="completed-task-list"></div>
+      </section>
+    </div>
+
+    <div id="view-calendar" class="view-panel view-panel-calendar">
+      <div class="calendar-toolbar">
+        <div class="calendar-toolbar-row calendar-toolbar-top">
+          <div class="calendar-chart-style-group">
+            <span class="calendar-toolbar-label">Chart Style</span>
+            <button type="button" class="calendar-chart-style-btn active" data-chart-style="basic">Basic</button>
+            <button type="button" class="calendar-chart-style-btn" data-chart-style="gantt">Gantt</button>
+          </div>
+          <div class="calendar-view-group">
+            <span class="calendar-toolbar-label">View</span>
+            <button type="button" class="calendar-view-btn" data-calendar-view="day">Day</button>
+            <button type="button" class="calendar-view-btn" data-calendar-view="week">Week</button>
+            <button type="button" class="calendar-view-btn active" data-calendar-view="month">Month</button>
+          </div>
+          <div class="calendar-nav-group">
+            <button type="button" id="calendar-prev-btn" class="calendar-nav-btn" title="Previous">‹</button>
+            <span id="calendar-period-label" class="calendar-period-label"></span>
+            <button type="button" id="calendar-next-btn" class="calendar-nav-btn" title="Next">›</button>
+          </div>
+          <div class="calendar-date-group">
+            <label for="calendar-goto-date">Go to date</label>
+            <input type="date" id="calendar-goto-date" class="calendar-goto-input">
+          </div>
+        </div>
+        <div class="calendar-toolbar-row" id="calendar-filter-row">
+          <label>Show tasks by:
+            <select id="calendar-filter">
+              <option value="assigned">Date added (Assigned date)</option>
+              <option value="eta">Due date (ETA)</option>
+            </select>
+          </label>
+        </div>
+        <div class="calendar-toolbar-row calendar-dayoff-toolbar">
+          <button type="button" id="calendar-dayoff-toggle" class="btn-secondary calendar-dayoff-toggle-btn">Day offs</button>
+        </div>
+        <div id="calendar-dayoff-panel" class="calendar-dayoff-panel task-toggleable-block task-block-collapsed">
+          <div class="calendar-dayoff-form">
+            <label>Date <input type="date" id="dayoff-date" class="calendar-dayoff-date"></label>
+            <label>Type
+              <select id="dayoff-type" class="calendar-dayoff-select">
+                <option value="full">Full day</option>
+                <option value="partial">Partial</option>
+              </select>
+            </label>
+            <label>Reason
+              <select id="dayoff-reason" class="calendar-dayoff-select">
+                <option value="PTO">PTO</option>
+                <option value="Sick">Sick</option>
+                <option value="Other">Other</option>
+              </select>
+            </label>
+            <span id="dayoff-hours-row" class="calendar-dayoff-hours-row" style="display: none;">
+              <label>Hours off <input type="number" id="dayoff-hours" class="calendar-dayoff-hours" min="0.5" step="0.5" placeholder="e.g. 4"></label>
+            </span>
+            <button type="button" id="calendar-dayoff-add-btn" class="btn-small btn-primary">Log day off</button>
+          </div>
+          <ul id="calendar-dayoff-list" class="calendar-dayoff-list"></ul>
+        </div>
+      </div>
+      <div id="calendar-container"></div>
+    </div>
+
+    <div id="view-summary" class="view-panel">
+      <div class="summary-toolbar">
+        <label>From: <input type="date" id="summary-from"></label>
+        <label>To: <input type="date" id="summary-to"></label>
+        <button type="button" id="generate-summary-btn" class="btn-primary">Generate Summary</button>
+        <select id="summary-export-format" class="summary-export-format">
+          <option value="htmlcss">HTML/CSS</option>
+          <option value="markdown">Markdown</option>
+        </select>
+        <button type="button" id="export-summary-btn" class="btn-primary summary-export-btn" disabled>Export Summary</button>
+      </div>
+      <div id="summary-output" class="summary-output"></div>
+    </div>
+  </main>
+
+  <script src="./renderer.js"></script>
+</body>
+</html>
