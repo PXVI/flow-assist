@@ -2586,6 +2586,7 @@
     var ptoAgg = 0;
     var sickAgg = 0;
     var otherAgg = 0;
+    var oooEntriesInRange = [];
     (exportSettings.dayOffs || []).forEach(function (off) {
       if (!off || !off.date || off.date < from || off.date > to) return;
       var eq = oooEntryDayEquivalent(off);
@@ -2593,7 +2594,14 @@
       if (reason === 'PTO') ptoAgg += eq;
       else if (reason === 'Sick') sickAgg += eq;
       else otherAgg += eq;
+      oooEntriesInRange.push({
+        date: off.date,
+        reason: reason,
+        type: off.type,
+        hoursOff: off.hoursOff
+      });
     });
+    oooEntriesInRange.sort(function (a, b) { return (a.date || '').localeCompare(b.date || ''); });
     var oooDaysTotal = ptoAgg + sickAgg + otherAgg;
 
     var miscHours = projectHours.Miscellaneous || 0;
@@ -2605,12 +2613,38 @@
     bwRowsHtml += '<tr><td>Miscellaneous</td><td class="export-td-num">' + formatExportDays(miscHours / exportHpd) + '</td></tr>';
     bwRowsHtml += '<tr><td>OOO</td><td class="export-td-num">' + formatExportDays(oooDaysTotal) + '</td></tr>';
 
+    function formatOooExportDetailLine(entry) {
+      var datePart = formatDateDMY(entry.date);
+      var reasonPart = escapeHtml(entry.reason || 'Other');
+      var typ = (entry.type || '').toLowerCase();
+      if (typ === 'full') {
+        return datePart + ' — <span class="export-bw-ooo-reason">' + reasonPart + '</span> <span class="export-bw-ooo-meta">(full day)</span>';
+      }
+      var h = parseFloat(entry.hoursOff);
+      if (isNaN(h)) h = 0;
+      var hStr = String(h).replace(/\.0$/, '');
+      return datePart + ' — <span class="export-bw-ooo-reason">' + reasonPart + '</span> <span class="export-bw-ooo-meta">(' + escapeHtml(hStr) + ' h off)</span>';
+    }
+    var oooBreakdownHtml = '';
+    if (oooEntriesInRange.length) {
+      oooBreakdownHtml =
+        '<div class="export-bw-ooo-breakdown">' +
+        '<p class="export-bw-ooo-detail-label">OOO details</p>' +
+        '<ul class="export-bw-ooo-list">' +
+        oooEntriesInRange.map(function (e) {
+          return '<li>' + formatOooExportDetailLine(e) + '</li>';
+        }).join('') +
+        '</ul></div>';
+    }
+
     var bandwidthBlock =
       '<div class="export-section export-section-bandwidth">' +
       '<table class="export-bw-table">' +
       '<thead><tr><th colspan="2" class="export-bw-head">Bandwidth</th></tr></thead><tbody>' +
       bwRowsHtml +
-      '</tbody></table></div>';
+      '</tbody></table>' +
+      oooBreakdownHtml +
+      '</div>';
 
     function subNewEffortInRange(s) {
       return (s.progress_updates || []).filter(function (p) { return inRange(p.date_added); }).reduce(function (sum, p) {
@@ -3031,6 +3065,12 @@
       '.export-bw-table tbody tr:nth-child(even){background:#fff}' +
       '.export-bw-table tbody td:first-child{font-weight:600;color:#334155}' +
       '.export-bw-table .export-td-num{text-align:right;font-variant-numeric:tabular-nums;color:#0f172a;font-weight:600}' +
+      '.export-bw-ooo-breakdown{margin-top:16px;padding:14px 18px;border-radius:10px;border:1px solid #e2e8f0;background:linear-gradient(180deg,#f8fafc 0%,#f1f5f9 100%);max-width:440px;box-shadow:0 1px 2px rgba(15,23,42,.04)}' +
+      '.export-bw-ooo-detail-label{margin:0 0 10px;font-size:11px;font-weight:700;color:#475569;letter-spacing:.06em;text-transform:uppercase}' +
+      '.export-bw-ooo-list{margin:0;padding-left:20px;color:#334155;font-size:12.5px;line-height:1.55}' +
+      '.export-bw-ooo-list li{margin:7px 0}' +
+      '.export-bw-ooo-reason{font-weight:600;color:#0f172a}' +
+      '.export-bw-ooo-meta{color:#64748b;font-weight:500;font-size:12px}' +
       '.export-work-table{table-layout:fixed;border-collapse:collapse;margin:0;font-size:12px;box-shadow:0 2px 10px rgba(15,23,42,.06);border:1px solid #cbd5e1;border-radius:10px;overflow:hidden}' +
       '.export-work-table thead th{background:#334155;color:#f1f5f9;border:1px solid #475569;padding:11px 8px;font-weight:600;text-align:center;vertical-align:middle;font-size:11px;letter-spacing:.02em}' +
       '.export-work-table thead th.export-th-shrink{white-space:nowrap}' +
