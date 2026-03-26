@@ -87,13 +87,17 @@
     return DEFAULT_CATEGORIES.slice();
   }
 
-  function renderCategoryDropdownHtml(selectedArr, idPrefix) {
+  function renderCategoryDropdownHtml(selectedArr, idPrefix, options) {
+    options = options || {};
+    var plainBtn = !!options.plainButton;
     var list = getCategoryList();
     var selected = selectedArr || [];
     var label = selected.length ? selected.join(', ') : '—';
     var idAttr = idPrefix ? ' id="' + escapeHtml(idPrefix) + '"' : '';
-    var html = '<div class="category-dropdown-wrap"' + idAttr + '>' +
-      '<button type="button" class="category-dropdown-btn" title="Category">Category: ' + escapeHtml(label) + '</button>' +
+    var plainAttr = plainBtn ? ' data-category-btn-plain="true"' : '';
+    var btnText = plainBtn ? escapeHtml(label) : ('Category: ' + escapeHtml(label));
+    var html = '<div class="category-dropdown-wrap"' + idAttr + plainAttr + '>' +
+      '<button type="button" class="category-dropdown-btn" title="Category">' + btnText + '</button>' +
       '<div class="category-dropdown-panel">' +
       list.map(function (cat) {
         var checked = selected.indexOf(cat) !== -1;
@@ -101,6 +105,68 @@
       }).join('') +
       '</div></div>';
     return html;
+  }
+
+  /** Categories for a progress update (supports legacy single `category` until normalized). */
+  function progressUpdateCategoriesArray(p) {
+    if (!p) return [];
+    if (Array.isArray(p.categories) && p.categories.length) {
+      return p.categories.map(function (c) { return String(c).trim(); }).filter(Boolean);
+    }
+    if (p.category != null && String(p.category).trim()) {
+      var leg = String(p.category).trim();
+      if (leg.indexOf(',') >= 0) {
+        return leg.split(',').map(function (x) { return x.trim(); }).filter(Boolean);
+      }
+      return [leg];
+    }
+    return [];
+  }
+
+  /** Preserve newlines for summary/export; optional max length (characters). */
+  function formatProgressSummaryTextHtml(raw, maxLen) {
+    var s = (raw == null ? '' : String(raw)).trim();
+    if (!s) return '';
+    if (maxLen != null && maxLen > 0 && s.length > maxLen) {
+      s = s.slice(0, maxLen) + '…';
+    }
+    return formatMultilineWithLinks(s);
+  }
+
+  /** One pill per category (Included-style), for summary / export progress rows. */
+  function summaryProgressCategoryPillsHtml(categories, pillClass) {
+    var cls = pillClass || 'summary-progress-category-pill';
+    return (categories || []).map(function (c) {
+      var t = String(c).trim();
+      if (!t) return '';
+      return '<span class="' + cls + '">' + escapeHtml(t) + '</span>';
+    }).join('');
+  }
+
+  function summaryProgressEffortHtml(p, spanClass) {
+    var sc = spanClass || 'summary-progress-effort';
+    if (p.effort_consumed_hours == null || p.effort_consumed_hours === '') return '';
+    return '<span class="' + sc + '">' + escapeHtml(String(p.effort_consumed_hours)) + ' hrs</span>';
+  }
+
+  /** Summary detailed card: line 1 = number, category pills, effort; line 2 = indented description only. */
+  function renderSummaryProgressLiHtml(p, indexZeroBased, maxDescLen) {
+    var num = '<span class="summary-progress-li-num">' + escapeHtml(String(indexZeroBased + 1) + '.') + '</span>';
+    var pills = summaryProgressCategoryPillsHtml(progressUpdateCategoriesArray(p));
+    var effort = summaryProgressEffortHtml(p);
+    var line1 = '<div class="summary-progress-line1">' + num + pills + effort + '</div>';
+    var desc = formatProgressSummaryTextHtml(p.text, maxDescLen);
+    var line2 = desc ? '<div class="summary-progress-desc">' + desc + '</div>' : '';
+    return '<li class="summary-progress-item">' + line1 + line2 + '</li>';
+  }
+
+  /** Same layout as task/sub-task details: label left, checkbox dropdown (plain button text). */
+  function renderProgressCategoryRowHtml(selectedArr, idPrefix) {
+    var cats = Array.isArray(selectedArr) ? selectedArr.filter(Boolean) : [];
+    return '<div class="task-detail-category-wrap progress-category-row">' +
+      '<span class="task-detail-label">Category</span>' +
+      renderCategoryDropdownHtml(cats, idPrefix, { plainButton: true }) +
+      '</div>';
   }
 
   function getSelectedCategoriesFromWrap(wrapEl) {
@@ -124,11 +190,32 @@
     }
     function updateBtnLabel() {
       var sel = getSelectedCategoriesFromWrap(wrap);
-      if (btn) btn.textContent = 'Category: ' + (sel.length ? sel.join(', ') : '—');
+      if (btn) {
+        var plain = wrap.getAttribute('data-category-btn-plain') === 'true';
+        btn.textContent = plain ? (sel.length ? sel.join(', ') : '—') : ('Category: ' + (sel.length ? sel.join(', ') : '—'));
+      }
     }
     Array.prototype.forEach.call(checkboxes, function (cb) {
       cb.addEventListener('change', updateBtnLabel);
     });
+    updateBtnLabel();
+  }
+
+  function setCategoryDropdownSelection(wrapEl, selectedArr) {
+    if (!wrapEl) return;
+    var sel = selectedArr || [];
+    wrapEl.querySelectorAll('.category-checkbox').forEach(function (cb) {
+      cb.checked = sel.indexOf(cb.value) !== -1;
+    });
+    var btn = wrapEl.querySelector('.category-dropdown-btn');
+    if (btn) {
+      var plain = wrapEl.getAttribute('data-category-btn-plain') === 'true';
+      btn.textContent = plain ? (sel.length ? sel.join(', ') : '—') : ('Category: ' + (sel.length ? sel.join(', ') : '—'));
+    }
+  }
+
+  function resetCategoryDropdownWrap(wrapEl) {
+    setCategoryDropdownSelection(wrapEl, []);
   }
 
   function getDefaultPriorityColor(priority) {
@@ -212,6 +299,19 @@
     if (!Array.isArray(t.concerns)) t.concerns = [];
     if (!t.subtasks) t.subtasks = [];
     if (!Array.isArray(t.categories)) t.categories = [];
+    if (!Array.isArray(t.progress_updates)) t.progress_updates = [];
+    t.progress_updates.forEach(function (p) {
+      if (!Array.isArray(p.categories)) p.categories = [];
+      if (p.category != null && String(p.category).trim() !== '') {
+        var legacy = String(p.category).trim();
+        if (!p.categories.length) {
+          p.categories = legacy.indexOf(',') >= 0
+            ? legacy.split(',').map(function (x) { return x.trim(); }).filter(Boolean)
+            : [legacy];
+        }
+      }
+      delete p.category;
+    });
     t.project = (t.project != null && String(t.project).trim()) ? String(t.project).trim() : '';
     t.difficulty = normalizeTaskDifficulty(t.difficulty);
     t.exclude_from_summary = !!t.exclude_from_summary;
@@ -228,6 +328,18 @@
       s.project = (s.project != null && String(s.project).trim()) ? String(s.project).trim() : '';
       s.exclude_from_summary = !!s.exclude_from_summary;
       s.exclude_from_export = !!s.exclude_from_export;
+      (s.progress_updates || []).forEach(function (p) {
+        if (!Array.isArray(p.categories)) p.categories = [];
+        if (p.category != null && String(p.category).trim() !== '') {
+          var legacyS = String(p.category).trim();
+          if (!p.categories.length) {
+            p.categories = legacyS.indexOf(',') >= 0
+              ? legacyS.split(',').map(function (x) { return x.trim(); }).filter(Boolean)
+              : [legacyS];
+          }
+        }
+        delete p.category;
+      });
     });
     return t;
   }
@@ -874,7 +986,8 @@
       id: generateId(),
       text: payload.text || '',
       date_added: payload.date_added || new Date().toISOString().slice(0, 10),
-      effort_consumed_hours: payload.effort_consumed_hours ?? 0
+      effort_consumed_hours: payload.effort_consumed_hours ?? 0,
+      categories: Array.isArray(payload.categories) ? payload.categories.slice() : []
     });
     task.progress_updates = sortProgressUpdatesOldestFirst(task.progress_updates);
     return save().then(function () { render(); });
@@ -888,6 +1001,9 @@
     if (payload.text !== undefined) u.text = payload.text;
     if (payload.date_added !== undefined) u.date_added = payload.date_added;
     if (payload.effort_consumed_hours !== undefined) u.effort_consumed_hours = payload.effort_consumed_hours;
+    if (payload.categories !== undefined) {
+      u.categories = Array.isArray(payload.categories) ? payload.categories.slice() : [];
+    }
     task.progress_updates = sortProgressUpdatesOldestFirst(task.progress_updates);
     return save().then(function () { render(); });
   }
@@ -952,7 +1068,8 @@
       id: generateId(),
       text: payload.text || '',
       date_added: payload.date_added || new Date().toISOString().slice(0, 10),
-      effort_consumed_hours: payload.effort_consumed_hours ?? 0
+      effort_consumed_hours: payload.effort_consumed_hours ?? 0,
+      categories: Array.isArray(payload.categories) ? payload.categories.slice() : []
     });
     s.progress_updates = sortProgressUpdatesOldestFirst(s.progress_updates);
     return save().then(function () { render(); });
@@ -968,6 +1085,9 @@
     if (payload.text !== undefined) u.text = payload.text;
     if (payload.date_added !== undefined) u.date_added = payload.date_added;
     if (payload.effort_consumed_hours !== undefined) u.effort_consumed_hours = payload.effort_consumed_hours;
+    if (payload.categories !== undefined) {
+      u.categories = Array.isArray(payload.categories) ? payload.categories.slice() : [];
+    }
     s.progress_updates = sortProgressUpdatesOldestFirst(s.progress_updates);
     return save().then(function () { render(); });
   }
@@ -1299,10 +1419,12 @@
               var d = p.date_added || '';
               var h = p.effort_consumed_hours != null ? p.effort_consumed_hours + ' hrs' : '';
               var effortVal = p.effort_consumed_hours != null ? p.effort_consumed_hours : '';
-              return '<li class="progress-item" data-update-id="' + escapeHtml(p.id) + '" data-date-added="' + escapeHtml(d) + '" data-effort="' + escapeHtml(String(effortVal)) + '" data-progress-text="' + escapeAttr(p.text || '') + '">' +
+              var pCats = progressUpdateCategoriesArray(p);
+              var catJoined = pCats.length ? pCats.join(', ') : '';
+              return '<li class="progress-item" data-update-id="' + escapeHtml(p.id) + '" data-date-added="' + escapeHtml(d) + '" data-effort="' + escapeHtml(String(effortVal)) + '" data-progress-categories="' + escapeAttr(JSON.stringify(pCats)) + '" data-progress-text="' + escapeAttr(p.text || '') + '">' +
                 '<div class="progress-item-view">' +
                   '<div class="progress-item-head">' +
-                    '<span class="progress-meta">' + escapeHtml(d) + (h ? ' · ' + h : '') + '</span>' +
+                    '<span class="progress-meta">' + escapeHtml(d) + (h ? ' · ' + h : '') + (catJoined ? ' · ' + escapeHtml(catJoined) : '') + '</span>' +
                     '<button type="button" class="btn-edit-cyan btn-edit-subtask-progress" title="Edit">✎</button>' +
                   '</div>' +
                   '<div class="progress-text">' + (formatMultilineWithLinks(p.text || '') || '') + '</div>' +
@@ -1311,6 +1433,7 @@
                   '<textarea class="progress-edit-text auto-resize" rows="2" placeholder="Note"></textarea>' +
                   '<input type="date" class="progress-edit-date">' +
                   '<input type="number" class="progress-edit-effort" placeholder="Hrs" min="0" step="0.5">' +
+                  renderProgressCategoryRowHtml(pCats, 'progress-edit-cat-' + p.id) +
                   '<button type="button" class="btn-small progress-save-btn subtask-progress-save">Save</button>' +
                 '</div>' +
               '</li>';
@@ -1320,6 +1443,7 @@
             '<textarea class="progress-text-in subtask-progress-text auto-resize" rows="2" placeholder="Progress note…"></textarea>' +
             '<input type="date" class="progress-date-in subtask-progress-date" value="' + today + '">' +
             '<input type="number" class="progress-effort-in subtask-progress-effort" placeholder="Hrs" min="0" step="0.5">' +
+            renderProgressCategoryRowHtml([], 'subtask-progress-add-cat-' + taskId + '-' + s.id) +
             '<button type="button" class="btn-small add-subtask-progress-btn">Add progress</button>' +
           '</div>' +
         '</div>' +
@@ -1502,10 +1626,12 @@
               var d = p.date_added || '';
               var h = p.effort_consumed_hours != null ? p.effort_consumed_hours + ' hrs' : '';
               var effortVal = p.effort_consumed_hours != null ? p.effort_consumed_hours : '';
-              return '<li class="progress-item" data-update-id="' + escapeHtml(p.id) + '" data-date-added="' + escapeHtml(d) + '" data-effort="' + escapeHtml(String(effortVal)) + '" data-progress-text="' + escapeAttr(p.text || '') + '">' +
+              var pCatsM = progressUpdateCategoriesArray(p);
+              var catJoinedM = pCatsM.length ? pCatsM.join(', ') : '';
+              return '<li class="progress-item" data-update-id="' + escapeHtml(p.id) + '" data-date-added="' + escapeHtml(d) + '" data-effort="' + escapeHtml(String(effortVal)) + '" data-progress-categories="' + escapeAttr(JSON.stringify(pCatsM)) + '" data-progress-text="' + escapeAttr(p.text || '') + '">' +
                 '<div class="progress-item-view">' +
                   '<div class="progress-item-head">' +
-                    '<span class="progress-meta">' + escapeHtml(d) + (h ? ' · ' + h : '') + '</span>' +
+                    '<span class="progress-meta">' + escapeHtml(d) + (h ? ' · ' + h : '') + (catJoinedM ? ' · ' + escapeHtml(catJoinedM) : '') + '</span>' +
                     '<button type="button" class="btn-edit-cyan btn-edit-progress" title="Edit">✎</button>' +
                   '</div>' +
                   '<div class="progress-text">' + (formatMultilineWithLinks(p.text || '') || '') + '</div>' +
@@ -1514,6 +1640,7 @@
                   '<textarea class="progress-edit-text auto-resize" rows="2" placeholder="Note"></textarea>' +
                   '<input type="date" class="progress-edit-date">' +
                   '<input type="number" class="progress-edit-effort" placeholder="Hrs" min="0" step="0.5">' +
+                  renderProgressCategoryRowHtml(pCatsM, 'progress-edit-cat-' + p.id) +
                   '<button type="button" class="btn-small progress-save-btn">Save</button>' +
                 '</div>' +
               '</li>';
@@ -1523,6 +1650,7 @@
             '<textarea class="progress-text-in auto-resize" rows="2" placeholder="Progress note…"></textarea>' +
             '<input type="date" class="progress-date-in" value="' + today + '">' +
             '<input type="number" class="progress-effort-in" placeholder="Hrs" min="0" step="0.5">' +
+            renderProgressCategoryRowHtml([], 'progress-add-cat-' + task.id) +
             '<button type="button" class="btn-small add-progress-btn">Add progress</button>' +
           '</div>' +
         '</div>' +
@@ -1790,14 +1918,17 @@
         var textIn = card.querySelector('.progress-text-in');
         var dateIn = card.querySelector('.progress-date-in');
         var effortIn = card.querySelector('.progress-effort-in');
+        var progCatWrap = card.querySelector('.progress-add .category-dropdown-wrap');
         addProgressUpdate(taskId, {
           text: textIn && textIn.value,
           date_added: dateIn && dateIn.value || new Date().toISOString().slice(0, 10),
-          effort_consumed_hours: effortIn ? parseFloat(effortIn.value) || 0 : 0
+          effort_consumed_hours: effortIn ? parseFloat(effortIn.value) || 0 : 0,
+          categories: getSelectedCategoriesFromWrap(progCatWrap)
         });
         if (textIn) textIn.value = '';
         if (dateIn) dateIn.value = '';
         if (effortIn) effortIn.value = '';
+        resetCategoryDropdownWrap(progCatWrap);
       });
     });
 
@@ -1814,6 +1945,16 @@
             editText.value = rawText !== null ? decodeAttr(rawText) : (textEl ? textEl.textContent : '');
             li.querySelector('.progress-edit-date').value = li.dataset.dateAdded || '';
             li.querySelector('.progress-edit-effort').value = li.dataset.effort || '';
+            var catWrapEdit = li.querySelector('.progress-item-edit .category-dropdown-wrap');
+            if (catWrapEdit) {
+              var rawCats = li.getAttribute('data-progress-categories');
+              var arrCats = [];
+              try {
+                arrCats = rawCats ? JSON.parse(rawCats) : [];
+                if (!Array.isArray(arrCats)) arrCats = [];
+              } catch (err) { arrCats = []; }
+              setCategoryDropdownSelection(catWrapEdit, arrCats);
+            }
             view.classList.add('hidden');
             edit.classList.remove('hidden');
             autoResizeTextarea(editText);
@@ -1821,17 +1962,19 @@
       });
     });
 
-    card.querySelectorAll('.progress-save-btn').forEach(function (btn) {
+    card.querySelectorAll('ul.progress-list:not(.subtask-progress-list) .progress-save-btn').forEach(function (btn) {
       btn.addEventListener('click', function (e) {
         e.stopPropagation();
         var li = btn.closest('.progress-item');
         var edit = li.querySelector('.progress-item-edit');
         var view = li.querySelector('.progress-item-view');
         var updateId = li.dataset.updateId;
+        var catWrapSave = li.querySelector('.progress-item-edit .category-dropdown-wrap');
         updateProgressUpdate(taskId, updateId, {
           text: li.querySelector('.progress-edit-text').value,
           date_added: li.querySelector('.progress-edit-date').value || new Date().toISOString().slice(0, 10),
-          effort_consumed_hours: parseFloat(li.querySelector('.progress-edit-effort').value) || 0
+          effort_consumed_hours: parseFloat(li.querySelector('.progress-edit-effort').value) || 0,
+          categories: getSelectedCategoriesFromWrap(catWrapSave)
         });
         edit.classList.add('hidden');
         view.classList.remove('hidden');
@@ -1943,14 +2086,17 @@
           var textIn = subCard.querySelector('.subtask-progress-text');
           var dateIn = subCard.querySelector('.subtask-progress-date');
           var effortIn = subCard.querySelector('.subtask-progress-effort');
+          var subProgCatWrap = subCard.querySelector('.progress-add .category-dropdown-wrap');
           addSubtaskProgressUpdate(subTaskId, subId, {
             text: textIn && textIn.value,
             date_added: dateIn && dateIn.value || new Date().toISOString().slice(0, 10),
-            effort_consumed_hours: effortIn ? parseFloat(effortIn.value) || 0 : 0
+            effort_consumed_hours: effortIn ? parseFloat(effortIn.value) || 0 : 0,
+            categories: getSelectedCategoriesFromWrap(subProgCatWrap)
           });
           if (textIn) textIn.value = '';
           if (dateIn) dateIn.value = '';
           if (effortIn) effortIn.value = '';
+          resetCategoryDropdownWrap(subProgCatWrap);
         });
       });
 
@@ -1967,6 +2113,16 @@
             editTextEl.value = rawText !== null ? decodeAttr(rawText) : (textEl ? textEl.textContent : '');
             li.querySelector('.progress-edit-date').value = li.dataset.dateAdded || '';
             li.querySelector('.progress-edit-effort').value = li.dataset.effort || '';
+            var subCatWrapEdit = li.querySelector('.progress-item-edit .category-dropdown-wrap');
+            if (subCatWrapEdit) {
+              var rawSub = li.getAttribute('data-progress-categories');
+              var arrSub = [];
+              try {
+                arrSub = rawSub ? JSON.parse(rawSub) : [];
+                if (!Array.isArray(arrSub)) arrSub = [];
+              } catch (err2) { arrSub = []; }
+              setCategoryDropdownSelection(subCatWrapEdit, arrSub);
+            }
             view.classList.add('hidden');
             edit.classList.remove('hidden');
             autoResizeTextarea(editTextEl);
@@ -1981,10 +2137,12 @@
           var edit = li.querySelector('.progress-item-edit');
           var view = li.querySelector('.progress-item-view');
           var updateId = li.dataset.updateId;
+          var subCatWrapSave = li.querySelector('.progress-item-edit .category-dropdown-wrap');
           updateSubtaskProgressUpdate(subTaskId, subId, updateId, {
             text: li.querySelector('.progress-edit-text').value,
             date_added: li.querySelector('.progress-edit-date').value || new Date().toISOString().slice(0, 10),
-            effort_consumed_hours: parseFloat(li.querySelector('.progress-edit-effort').value) || 0
+            effort_consumed_hours: parseFloat(li.querySelector('.progress-edit-effort').value) || 0,
+            categories: getSelectedCategoriesFromWrap(subCatWrapSave)
           });
           edit.classList.add('hidden');
           view.classList.remove('hidden');
@@ -2515,11 +2673,16 @@
     function progressSummaryHtml(updates) {
       if (!updates || !updates.length) return '<span class="muted">No progress made.</span>';
       var ordered = sortProgressUpdatesOldestFirst(updates);
-      var lines = ordered.map(function (p, i) {
-        var text = (p.text || '').replace(/\s+/g, ' ').trim();
-        return escapeHtml(String(i + 1) + '. ') + linkifyPlainText(text);
+      var blocks = ordered.map(function (p, i) {
+        var num = '<span class="export-progress-num">' + escapeHtml(String(i + 1) + '.') + '</span>';
+        var pills = summaryProgressCategoryPillsHtml(progressUpdateCategoriesArray(p), 'export-progress-category-pill');
+        var effort = summaryProgressEffortHtml(p, 'export-progress-effort');
+        var line1 = '<div class="export-progress-line1">' + num + pills + effort + '</div>';
+        var body = formatProgressSummaryTextHtml((p.text || '').trim(), 5000);
+        var line2 = body ? '<div class="export-progress-desc">' + body + '</div>' : '';
+        return '<div class="export-progress-item">' + line1 + line2 + '</div>';
       });
-      return lines.join('<br>');
+      return blocks.join('');
     }
     function taskDetailsHtml(desc) {
       if (!desc || !String(desc).trim()) return '—';
@@ -3106,6 +3269,13 @@
       '.export-p-label{font-weight:700;margin-top:2px;color:#0f172a;font-size:11px}' +
       '.export-p-label-gap{margin-top:12px}' +
       '.export-p-body,.export-c-body{margin:6px 0 0}' +
+      '.export-progress-item{display:flex;flex-direction:column;align-items:stretch;gap:6px;margin:0 0 14px}' +
+      '.export-progress-item:last-child{margin-bottom:0}' +
+      '.export-progress-line1{display:flex;flex-wrap:wrap;align-items:center;gap:8px}' +
+      '.export-progress-num{font-weight:700;color:#64748b;flex-shrink:0}' +
+      '.export-progress-effort{font-size:11px;font-weight:600;color:#64748b;flex-shrink:0}' +
+      '.export-progress-category-pill{display:inline-flex;align-items:center;padding:3px 8px;border-radius:999px;font-size:9px;font-weight:700;border:1px solid #a5b4fc;background:linear-gradient(180deg,#eef2ff 0%,#e0e7ff 100%);color:#4338ca;vertical-align:middle}' +
+      '.export-progress-desc{padding-left:14px;margin-left:4px;border-left:2px solid #e2e8f0;font-size:11.5px;line-height:1.55;color:#334155;word-wrap:break-word;overflow-wrap:break-word}' +
       'tr.export-row-highlight td{background-color:#ecfdf5!important}' +
       'tr.export-row-highlight.export-row-main td,tr.export-row-highlight.export-row-sub td{background-color:#ecfdf5!important}' +
       'tr.export-row-main td{background:#fafbfc}' +
@@ -3374,9 +3544,30 @@
         } else {
           var ordered = sortProgressUpdatesOldestFirst(updates);
           ordered.forEach(function (p, i) {
-            var text = (p.text || '').replace(/\s+/g, ' ').trim();
-            var hrs = p.effort_consumed_hours != null ? String(p.effort_consumed_hours) + ' hrs — ' : '';
-            lines.push('- ' + hrs + linkifyConfluenceCell(text));
+            var textRaw = (p.text || '').trim();
+            var cats = progressUpdateCategoriesArray(p);
+            var pillMd = cats.map(function (c) {
+              var t = String(c).trim();
+              if (!t) return '';
+              return mdBoldInner(cfPlainForTable(t));
+            }).filter(Boolean).join(' ');
+            var eff = (p.effort_consumed_hours != null && p.effort_consumed_hours !== '') ? (String(p.effort_consumed_hours) + ' hrs') : '';
+            var headBits = [String(i + 1) + '.'];
+            if (pillMd) headBits.push(pillMd);
+            if (eff) headBits.push(eff);
+            lines.push('- ' + headBits.join(' '));
+            var paras = textRaw ? textRaw.split(/\r\n|\n|\r/) : [];
+            while (paras.length && !paras[0].trim()) paras.shift();
+            var wroteDesc = false;
+            paras.forEach(function (para) {
+              var lineText = para.trim();
+              if (!lineText) return;
+              lines.push('  ' + linkifyConfluenceCell(lineText));
+              wroteDesc = true;
+            });
+            if (!wroteDesc) {
+              lines.push('  *No note*');
+            }
           });
         }
         lines.push('');
@@ -3868,8 +4059,7 @@
       if (mainProgressInRange.length) {
         card += '<ol class="summary-list summary-progress-list">';
         mainProgressInRange.forEach(function (p, i) {
-          var text = (p.text || '').replace(/\s+/g, ' ').trim().slice(0, 200);
-          card += '<li><span class="summary-progress-meta">' + (p.effort_consumed_hours != null ? p.effort_consumed_hours + ' hrs' : '') + '</span>' + (text ? (p.effort_consumed_hours != null ? ' ' : '') + linkifyPlainText(text) : '') + '</li>';
+          card += renderSummaryProgressLiHtml(p, i, 3000);
         });
         card += '</ol>';
       } else {
@@ -3889,8 +4079,7 @@
           var subBlockClass = 'summary-subtask-progress-block' + (subNewEffortHrs > 0 ? ' summary-has-new-effort' : '');
           card += '<div class="' + subBlockClass + '"><div class="summary-subtask-name">' + summaryProjectPillHtml(s.project) + '<span>' + escapeHtml(s.title || '(no title)') + '</span>' + (!subtaskHasDedicatedEffort(s) ? summaryIncludedPillHtml() : '') + '</div><ol class="summary-list summary-sublist">';
           entry.updates.forEach(function (p, i) {
-            var text = (p.text || '').replace(/\s+/g, ' ').trim().slice(0, 200);
-            card += '<li><span class="summary-progress-meta">' + (p.effort_consumed_hours != null ? p.effort_consumed_hours + ' hrs' : '') + '</span>' + (text ? (p.effort_consumed_hours != null ? ' ' : '') + linkifyPlainText(text) : '') + '</li>';
+            card += renderSummaryProgressLiHtml(p, i, 3000);
           });
           card += '</ol></div>';
         });

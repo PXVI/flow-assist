@@ -987,7 +987,9 @@ textarea.auto-resize {
 /* Above task rows / siblings so checkboxes are not covered when parent overflow is visible */
 .new-subtask-form .category-dropdown-panel,
 .task-details-block .category-dropdown-panel,
-.subtask-details-block .category-dropdown-panel {
+.subtask-details-block .category-dropdown-panel,
+.progress-add .category-dropdown-panel,
+.progress-item-edit .category-dropdown-panel {
   z-index: 1200;
 }
 
@@ -1019,6 +1021,26 @@ textarea.auto-resize {
   font-size: 0.8rem;
   color: #8b949e;
   margin-bottom: 6px;
+}
+
+.task-detail-category-wrap.progress-category-row {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-bottom: 0;
+}
+
+.task-detail-category-wrap.progress-category-row .task-detail-label {
+  margin-bottom: 0;
+  flex: 0 0 auto;
+  white-space: nowrap;
+}
+
+.progress-add .progress-category-row,
+.progress-item-edit .progress-category-row {
+  flex: 1 1 100%;
 }
 
 .task-detail-project-wrap {
@@ -2868,6 +2890,64 @@ a.auto-link:hover {
   margin-bottom: 4px;
 }
 
+.summary-list.summary-progress-list,
+.summary-list.summary-sublist {
+  list-style: none;
+  padding-left: 0;
+}
+
+.summary-list.summary-progress-list > li.summary-progress-item,
+.summary-list.summary-sublist > li.summary-progress-item {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 5px;
+  margin-bottom: 10px;
+}
+
+.summary-progress-line1 {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.summary-progress-li-num {
+  font-weight: 600;
+  color: #8b949e;
+  flex-shrink: 0;
+}
+
+.summary-progress-category-pill {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: 0.68rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  border: 1px solid rgba(129, 140, 248, 0.5);
+  background: rgba(99, 102, 241, 0.12);
+  color: #a5b4fc;
+  flex-shrink: 0;
+}
+
+.summary-progress-effort {
+  font-size: 0.82rem;
+  font-weight: 500;
+  color: #8b949e;
+  flex-shrink: 0;
+}
+
+.summary-progress-desc {
+  padding-left: 1.35rem;
+  margin-left: 0.2rem;
+  border-left: 2px solid rgba(110, 118, 129, 0.35);
+  font-size: 0.88rem;
+  line-height: 1.45;
+  color: #c9d1d9;
+}
+
 .summary-report a.auto-link {
   color: #58a6ff;
 }
@@ -2935,12 +3015,6 @@ a.auto-link:hover {
   flex-wrap: wrap;
   align-items: center;
   gap: 8px;
-}
-
-.summary-progress-meta {
-  color: #6e7681;
-  font-size: 0.82rem;
-  margin-right: 6px;
 }
 
 .summary-total-effort {

@@ -13,6 +13,7 @@ function generateId() {
  * @property {string} text
  * @property {string} date_added - YYYY-MM-DD
  * @property {number} effort_consumed_hours
+ * @property {string[]} [categories] - optional; subset of Settings categories for this progress entry
  */
 
 /**
