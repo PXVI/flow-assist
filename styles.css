@@ -2470,6 +2470,85 @@ a.auto-link:hover {
   min-height: 120px;
 }
 
+.summary-export-htmlcss {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.summary-export-htmlcss-tabbed {
+  gap: 12px;
+}
+
+.summary-export-tab-bar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  align-items: flex-end;
+  border-bottom: 1px solid #30363d;
+  padding-bottom: 0;
+  margin-bottom: 4px;
+}
+
+.summary-export-tab {
+  margin: 0;
+  cursor: pointer;
+  font-family: inherit;
+  font-size: 0.85rem;
+  font-weight: 600;
+  padding: 8px 16px;
+  border-radius: 6px 6px 0 0;
+  border: 1px solid #30363d;
+  border-bottom: none;
+  background: #21262d;
+  color: #8b949e;
+}
+
+.summary-export-tab:hover {
+  color: #c9d1d9;
+}
+
+.summary-export-tab.is-active {
+  color: #e6edf3;
+  background: #161b22;
+  border-color: #30363d;
+  position: relative;
+  bottom: -1px;
+  padding-bottom: 9px;
+  margin-bottom: -1px;
+}
+
+.summary-export-tab-panel {
+  display: none;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.summary-export-tab-panel.is-active {
+  display: flex;
+}
+
+.summary-export-field-label {
+  display: block;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: #8b949e;
+  margin-bottom: 2px;
+}
+
+.summary-export-separated-heading {
+  margin: 18px 0 0;
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: #58a6ff;
+}
+
+.summary-export-separated-note {
+  margin: 0 0 4px;
+  font-size: 0.8rem;
+  line-height: 1.45;
+}
+
 .summary-export-text {
   width: 100%;
   min-height: 560px;
@@ -2482,6 +2561,10 @@ a.auto-link:hover {
   font-size: 12px;
   line-height: 1.4;
   resize: vertical;
+}
+
+.summary-export-text-split {
+  min-height: 220px;
 }
 
 .summary-report {

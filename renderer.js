@@ -2416,7 +2416,9 @@
     }).filter(Boolean);
   }
 
-  function buildSummaryExportHtml(meta) {
+  function buildSummaryExportHtmlParts(meta, opts) {
+    opts = opts || {};
+    var brief = !!opts.brief;
     var from = meta.from;
     var to = meta.to;
     var activeTasks = meta.activeTasks || [];
@@ -2532,7 +2534,16 @@
       });
       return out.length ? out.join('') : '<span class="muted">None</span>';
     }
-    function progressCellHtml(updates, concerns) {
+    /** `isIdleNoProgressTable`: Tasks with No Progress export — no Progress block; concerns-only with "Concerns: None" when empty. */
+    function progressCellHtml(updates, concerns, isIdleNoProgressTable) {
+      concerns = concerns || [];
+      if (isIdleNoProgressTable) {
+        if (concerns.length) {
+          return '<div class="export-progress-wrap">' +
+            '<div class="export-p-label">Concerns:</div><div class="export-c-body">' + exportProgressConcernsHtml(concerns) + '</div></div>';
+        }
+        return '<div class="export-progress-wrap"><div class="export-c-body"><span class="muted"><strong>Concerns</strong>: None</span></div></div>';
+      }
       return '<div class="export-progress-wrap">' +
         '<div class="export-p-label">Progress:</div><div class="export-p-body">' + progressSummaryHtml(updates) + '</div>' +
         '<div class="export-p-label export-p-label-gap">Concerns:</div><div class="export-c-body">' + exportProgressConcernsHtml(concerns) + '</div></div>';
@@ -2595,10 +2606,11 @@
     bwRowsHtml += '<tr><td>OOO</td><td class="export-td-num">' + formatExportDays(oooDaysTotal) + '</td></tr>';
 
     var bandwidthBlock =
+      '<div class="export-section export-section-bandwidth">' +
       '<table class="export-bw-table">' +
       '<thead><tr><th colspan="2" class="export-bw-head">Bandwidth</th></tr></thead><tbody>' +
       bwRowsHtml +
-      '</tbody></table>';
+      '</tbody></table></div>';
 
     function subNewEffortInRange(s) {
       return (s.progress_updates || []).filter(function (p) { return inRange(p.date_added); }).reduce(function (sum, p) {
@@ -2630,13 +2642,13 @@
 
         var mergeBlockRows = includedSubs.length > 0 ? 1 + includedSubs.length : 1;
         var mergeAttr = mergeBlockRows > 1 ? ' rowspan="' + mergeBlockRows + '"' : '';
-        var mergeNum = 'export-td-num export-td-merge';
+        var mergeNum = includedSubs.length > 0 ? 'export-td-num export-td-merge' : 'export-td-num';
 
         var plannedTd = '<td' + mergeAttr + ' class="' + mergeNum + ' export-td-eff-planned">' + buildPlannedEffortHtml(t) + '</td>';
         var cumTd = '<td' + mergeAttr + ' class="' + mergeNum + ' export-td-eff-cumulative">' + cumulativeOutsideRange + '</td>';
         var newMainTd = '<td class="export-td-num export-td-eff-new">' + mainRangeEffort + '</td>';
         var remTd = '<td' + mergeAttr + ' class="' + mergeNum + ' export-td-eff-remaining' + (remainingMainOnly < 0 ? ' negative' : '') + '">' + remainingMainOnly + '</td>';
-        var mainEffortCells = plannedTd + cumTd + (omitNewEffort ? '' : newMainTd) + remTd;
+        var mainEffortCells = plannedTd + cumTd + (omitNewEffort ? '' : newMainTd) + (brief ? '' : remTd);
 
         rows.push(
           '<tr class="' + mainRowClass + '">' +
@@ -2646,8 +2658,8 @@
             '<td class="export-td-eta export-td-eta-planned">' + plannedEtaCell + '</td>' +
             '<td class="export-td-eta export-td-eta-current">' + buildEtaCurrentHtml(t) + '</td>' +
             '<td class="export-td-status">' + statusBadge(t.status || 'Open') + '</td>' +
-            '<td class="export-td-progress">' + progressCellHtml(mainProgress, t.concerns || []) + '</td>' +
-            '<td class="export-td-details">' + taskDetailsHtml(t.description) + '</td>' +
+            '<td class="export-td-progress">' + progressCellHtml(mainProgress, t.concerns || [], omitNewEffort) + '</td>' +
+            (brief ? '' : ('<td class="export-td-details">' + taskDetailsHtml(t.description) + '</td>')) +
           '</tr>'
         );
 
@@ -2669,8 +2681,8 @@
               '<td class="export-td-eta export-td-eta-planned">' + plannedCellS + '</td>' +
               '<td class="export-td-eta export-td-eta-current">' + buildEtaCurrentHtml(s) + '</td>' +
               '<td class="export-td-status">' + statusBadge(s.status || 'Open') + '</td>' +
-              '<td class="export-td-progress">' + progressCellHtml(subUpdates, s.concerns || []) + '</td>' +
-              '<td class="export-td-details">' + taskDetailsHtml(s.description) + '</td>' +
+              '<td class="export-td-progress">' + progressCellHtml(subUpdates, s.concerns || [], omitNewEffort) + '</td>' +
+              (brief ? '' : ('<td class="export-td-details">' + taskDetailsHtml(s.description) + '</td>')) +
             '</tr>'
           );
         });
@@ -2687,6 +2699,7 @@
           var highlightSub = !omitNewEffort && subEffort > 0.001;
           var subRowClass = 'export-row-sub' + (highlightSub ? ' export-row-highlight' : '');
           var dedicatedNewTd = omitNewEffort ? '' : ('<td class="export-td-num export-td-eff-new">' + subEffort + '</td>');
+          var remDedicatedTd = brief ? '' : ('<td class="export-td-num export-td-eff-remaining' + (remS < 0 ? ' negative' : '') + '">' + remS + '</td>');
           rows.push(
             '<tr class="' + subRowClass + '">' +
               '<td class="export-td-task"><div class="export-sub-task-row">' +
@@ -2695,16 +2708,198 @@
               '<td class="export-td-num export-td-eff-planned">' + buildPlannedEffortHtml(s) + '</td>' +
               '<td class="export-td-num export-td-eff-cumulative">' + cumulativeOutsideSub + '</td>' +
               dedicatedNewTd +
-              '<td class="export-td-num export-td-eff-remaining' + (remS < 0 ? ' negative' : '') + '">' + remS + '</td>' +
+              remDedicatedTd +
               '<td class="export-td-eta export-td-eta-planned">' + plannedCellS + '</td>' +
               '<td class="export-td-eta export-td-eta-current">' + buildEtaCurrentHtml(s) + '</td>' +
               '<td class="export-td-status">' + statusBadge(s.status || 'Open') + '</td>' +
-              '<td class="export-td-progress">' + progressCellHtml(subUpdates, s.concerns || []) + '</td>' +
-              '<td class="export-td-details">' + taskDetailsHtml(s.description) + '</td>' +
+              '<td class="export-td-progress">' + progressCellHtml(subUpdates, s.concerns || [], omitNewEffort) + '</td>' +
+              (brief ? '' : ('<td class="export-td-details">' + taskDetailsHtml(s.description) + '</td>')) +
             '</tr>'
           );
         });
       });
+    }
+
+    /** Extra px beyond measured content/header so cells are not flush. */
+    var EXPORT_COL_SLACK_PX = 6;
+    /** Pixel estimate for table cell text (12px table font); +pad for padding/borders. */
+    function exportCellNeedPx(charCount, tightNumeric) {
+      var c = Math.max(0, charCount | 0);
+      var per = tightNumeric ? 7.2 : 6.4;
+      return Math.round(c * per + (tightNumeric ? 32 : 48));
+    }
+    /** thead label min width: matches export-th-effort (10px) or default th (11px). */
+    function exportThLabelNeedPx(text, fontPx) {
+      var per = fontPx * 0.55;
+      return Math.ceil(String(text).length * per + 22);
+    }
+    /** ETA body cells use 11px (.export-td-eta-*); content width before slack. */
+    function exportEtaBodyColNeedPx(maxLineChars) {
+      var c = Math.max(0, maxLineChars | 0);
+      var per = 6.05;
+      return Math.round(c * per + 38);
+    }
+    function exportColWidth(needPxVal, floorPx, nominalPx) {
+      var need = Math.ceil(needPxVal);
+      if (need <= nominalPx) return Math.max(floorPx, nominalPx);
+      return Math.max(floorPx, need);
+    }
+    function exportColWidthCapped(needPxVal, floorPx, nominalPx, capPx) {
+      var need = Math.ceil(needPxVal);
+      var base = Math.max(floorPx, nominalPx);
+      if (need <= nominalPx) return base;
+      return Math.min(capPx, Math.max(floorPx, need));
+    }
+    /** Widest single line in stacked planned-effort cell (matches &lt;br&gt; layout). */
+    function plainEffortStackMaxLineCharLen(taskLike) {
+      var updates = (taskLike.effort_updates || []).slice().sort(function (a, b) {
+        return (a.date_recorded || '').localeCompare(b.date_recorded || '');
+      });
+      var segs = [];
+      function pushN(n) {
+        if (n == null || n === '') return;
+        var num = typeof n === 'number' ? n : parseFloat(n);
+        if (isNaN(num)) return;
+        if (segs.length && Math.abs(segs[segs.length - 1] - num) < 0.0001) return;
+        segs.push(num);
+      }
+      if (updates.length) {
+        pushN(updates[0].old_effort_hours);
+        updates.forEach(function (u) {
+          pushN(u.new_effort_hours);
+        });
+      } else {
+        var req = taskLike.effort_required_hours;
+        if (req != null && req !== '') pushN(req);
+      }
+      if (!segs.length) return 3;
+      var maxL = String(formatEffortExportNum(segs[0])).length;
+      for (var hi = 1; hi < segs.length; hi++) {
+        var line = '-> ' + formatEffortExportNum(segs[hi]);
+        if (line.length > maxL) maxL = line.length;
+      }
+      return maxL;
+    }
+    /** Widest single line in stacked current-ETA cell (one date per line; arrow lines use "-&gt; "). */
+    function plainEtaStackMaxLineCharLen(taskLike) {
+      var segs = [];
+      function pushY(y) {
+        if (!y || typeof y !== 'string') return;
+        if (segs.indexOf(y) === -1) segs.push(y);
+      }
+      var planned = (taskLike.eta_updates && taskLike.eta_updates.length && taskLike.eta_updates[0].old_eta) || taskLike.assigned_date || taskLike.eta || '';
+      if (planned) pushY(planned);
+      (taskLike.eta_updates || []).slice().sort(function (a, b) {
+        return (a.date_recorded || '').localeCompare(b.date_recorded || '');
+      }).forEach(function (u) {
+        if (u.old_eta) pushY(u.old_eta);
+        if (u.new_eta) pushY(u.new_eta);
+      });
+      if (taskLike.eta) pushY(taskLike.eta);
+      if (!segs.length) return 3;
+      function ymdLen(ymd) {
+        if (!ymd || typeof ymd !== 'string') return 4;
+        var m = ymd.match(/^(\d{4})-(\d{2})-(\d{2})/);
+        return m ? 10 : String(ymd).length;
+      }
+      var maxL = ymdLen(segs[0]);
+      for (var ei = 1; ei < segs.length; ei++) {
+        var lineLen = 4 + ymdLen(segs[ei]);
+        if (lineLen > maxL) maxL = lineLen;
+      }
+      return maxL;
+    }
+    function collectExportColumnMetrics(taskList, omitNewEffort, acc) {
+      taskList.forEach(function (t) {
+        var subs = (t.subtasks || []).filter(function (s) {
+          if (isTruthyFlag(s.exclude_from_summary) || isTruthyFlag(s.exclude_from_export)) return false;
+          return includeSubtaskInSummaryByDate(s, from);
+        });
+        var includedSubs = subs.filter(function (s) { return !subtaskHasDedicatedEffort(s); });
+        var dedicatedSubs = subs.filter(function (s) { return subtaskHasDedicatedEffort(s); });
+
+        var projMain = (t.project != null && String(t.project).trim()) ? String(t.project).trim() : 'Miscellaneous';
+        acc.projectChars = Math.max(acc.projectChars, projMain.length);
+        acc.taskChars = Math.max(acc.taskChars, String(t.title || '(no title)').length + 2);
+
+        acc.statusChars = Math.max(acc.statusChars, String(t.status || 'Open').length);
+
+        acc.effPlannedChars = Math.max(acc.effPlannedChars, plainEffortStackMaxLineCharLen(t));
+        acc.effCumChars = Math.max(acc.effCumChars, String(taskEffortOutsideRangeMainAttributed(t, from, to)).length);
+        if (!omitNewEffort) {
+          acc.effNewChars = Math.max(acc.effNewChars, String(taskEffortInRangeMainAttributed(t, from, to)).length);
+        }
+        if (!brief) {
+          var latestPlannedMain = getLatestPlannedEffortHours(t);
+          var spentMainAttrTotal = taskEffortSpentMainAttributed(t);
+          var remainingMainOnly = latestPlannedMain - spentMainAttrTotal;
+          acc.effRemChars = Math.max(acc.effRemChars, String(remainingMainOnly).length + (remainingMainOnly < 0 ? 14 : 0));
+        }
+
+        var plannedEtaRaw = (t.eta_updates && t.eta_updates.length && t.eta_updates[0].old_eta) || t.assigned_date || t.eta || '';
+        acc.etaPlannedChars = Math.max(acc.etaPlannedChars, plannedEtaRaw ? 10 : 2);
+        acc.etaCurrentChars = Math.max(acc.etaCurrentChars, plainEtaStackMaxLineCharLen(t));
+
+        includedSubs.forEach(function (s) {
+          acc.projectChars = Math.max(acc.projectChars, String(s.project || '').trim().length);
+          acc.taskChars = Math.max(acc.taskChars, String(s.title || '(no title)').length + 12);
+          acc.statusChars = Math.max(acc.statusChars, String(s.status || 'Open').length);
+          var plannedRawS = s.assigned_date || s.eta || '';
+          acc.etaPlannedChars = Math.max(acc.etaPlannedChars, plannedRawS ? 10 : 2);
+          acc.etaCurrentChars = Math.max(acc.etaCurrentChars, plainEtaStackMaxLineCharLen(s));
+        });
+
+        dedicatedSubs.forEach(function (s) {
+          acc.projectChars = Math.max(acc.projectChars, String(s.project || '').trim().length);
+          acc.taskChars = Math.max(acc.taskChars, String(s.title || '(no title)').length + 2);
+          var subUpdates = sortProgressUpdatesOldestFirst((s.progress_updates || []).filter(function (p) { return inRange(p.date_added); }));
+          acc.statusChars = Math.max(acc.statusChars, String(s.status || 'Open').length);
+          acc.effPlannedChars = Math.max(acc.effPlannedChars, plainEffortStackMaxLineCharLen(s));
+          acc.effCumChars = Math.max(acc.effCumChars, String(subtaskEffortOutsideRange(s, from, to)).length);
+          if (!omitNewEffort) {
+            var subEffort = subUpdates.reduce(function (sum, p) { return sum + progressEffortHours(p); }, 0);
+            acc.effNewChars = Math.max(acc.effNewChars, String(subEffort).length);
+          }
+          var reqS = getLatestPlannedEffortHours(s);
+          var spentS = subtaskEffortSpent(s);
+          var remS = reqS - spentS;
+          if (!brief) {
+            acc.effRemChars = Math.max(acc.effRemChars, String(remS).length + (remS < 0 ? 14 : 0));
+          }
+          var plannedRawS = s.assigned_date || s.eta || '';
+          acc.etaPlannedChars = Math.max(acc.etaPlannedChars, plannedRawS ? 10 : 2);
+          acc.etaCurrentChars = Math.max(acc.etaCurrentChars, plainEtaStackMaxLineCharLen(s));
+        });
+      });
+    }
+    function buildExportColgroupAttrs(plan) {
+      function colW(w) {
+        var x = Math.max(1, Math.round(w));
+        return ' style="width:' + x + 'px;min-width:' + x + 'px"';
+      }
+      var mainEffCols = brief
+        ? '<col' + colW(plan.activeEff.p) + '><col' + colW(plan.activeEff.c) + '><col' + colW(plan.activeEff.n) + '>'
+        : '<col' + colW(plan.activeEff.p) + '><col' + colW(plan.activeEff.c) + '><col' + colW(plan.activeEff.n) + '><col' + colW(plan.activeEff.r) + '>';
+      var tailCols = brief
+        ? '<col' + colW(plan.wEtaPlanned) + '><col' + colW(plan.wEtaCurrent) + '><col' + colW(plan.wStatus) + '><col' + colW(plan.wProgress) + '>'
+        : '<col' + colW(plan.wEtaPlanned) + '><col' + colW(plan.wEtaCurrent) + '><col' + colW(plan.wStatus) + '><col' + colW(plan.wProgress) + '><col' + colW(plan.wDetails) + '>';
+      var idleEffCols = brief
+        ? '<col' + colW(plan.idleEff.p) + '><col' + colW(plan.idleEff.c) + '>'
+        : '<col' + colW(plan.idleEff.p) + '><col' + colW(plan.idleEff.c) + '><col' + colW(plan.idleEff.r) + '>';
+      return {
+        main: '<colgroup>' +
+          '<col' + colW(plan.wProject) + '>' +
+          '<col' + colW(plan.wTask) + '>' +
+          mainEffCols +
+          tailCols +
+          '</colgroup>',
+        idle: '<colgroup>' +
+          '<col' + colW(plan.wProject) + '>' +
+          '<col' + colW(plan.wTask) + '>' +
+          idleEffCols +
+          tailCols +
+          '</colgroup>'
+      };
     }
 
     var gridRows = [];
@@ -2712,152 +2907,738 @@
     var idleGridRows = [];
     appendWorkSummaryExportRows(idleGridRows, exportIdleTasks, true);
 
+    var EXP_FS = 12;
+    var TASK_MIN_PX = Math.ceil(16 * EXP_FS);
+    var TASK_NOM_PX = Math.ceil(26 * EXP_FS);
+    /** Fixed widths (pre–dynamic-column behavior): same on both work tables; text wraps inside. */
+    var PROG_COL_PX = 580;
+    var DET_COL_PX = 520;
+    var PROJ_MIN_PX = 88;
+    var PROJ_NOM_PX = 128;
+    var PROJ_CAP_PX = 320;
+
+    var colAcc = {
+      projectChars: 0,
+      taskChars: 0,
+      statusChars: 0,
+      effPlannedChars: 0,
+      effCumChars: 0,
+      effNewChars: 1,
+      effRemChars: 0,
+      etaPlannedChars: 0,
+      etaCurrentChars: 0
+    };
+    collectExportColumnMetrics(exportActiveTasks, false, colAcc);
+    collectExportColumnMetrics(exportIdleTasks, true, colAcc);
+
+    var wProject = exportColWidthCapped(exportCellNeedPx(colAcc.projectChars, true), PROJ_MIN_PX, PROJ_NOM_PX, PROJ_CAP_PX);
+    var wTask = exportColWidth(exportCellNeedPx(colAcc.taskChars, false), TASK_MIN_PX, TASK_NOM_PX);
+    var wStatus = exportColWidth(exportCellNeedPx(colAcc.statusChars, true), 76, 92);
+    var wProgress = PROG_COL_PX;
+    var wDetails = brief ? 0 : DET_COL_PX;
+
+    var EFF_HDR_PLANNED = exportThLabelNeedPx('Planned', 10);
+    var EFF_HDR_CUM = exportThLabelNeedPx('Cumulative Effort', 10);
+    var EFF_HDR_NEW = exportThLabelNeedPx('New Effort', 10);
+    var EFF_HDR_REM = exportThLabelNeedPx('Remaining Effort', 10);
+    var ETA_HDR_PLANNED = exportThLabelNeedPx('Planned', 11);
+    var ETA_HDR_CURRENT = exportThLabelNeedPx('Current', 11);
+
+    var wEP0 = Math.max(EFF_HDR_PLANNED, exportCellNeedPx(colAcc.effPlannedChars, true)) + EXPORT_COL_SLACK_PX;
+    var wEC0 = Math.max(EFF_HDR_CUM, exportCellNeedPx(colAcc.effCumChars, true)) + EXPORT_COL_SLACK_PX;
+    var wEN0 = Math.max(EFF_HDR_NEW, exportCellNeedPx(colAcc.effNewChars, true)) + EXPORT_COL_SLACK_PX;
+    var wER0 = brief ? 0 : Math.max(EFF_HDR_REM, exportCellNeedPx(colAcc.effRemChars, true)) + EXPORT_COL_SLACK_PX;
+
+    var plannedEtaLineChars = Math.max(2, colAcc.etaPlannedChars | 0);
+    var wEtaPlanned = Math.max(ETA_HDR_PLANNED, exportEtaBodyColNeedPx(plannedEtaLineChars)) + EXPORT_COL_SLACK_PX;
+    var wEtaCurrent = Math.max(ETA_HDR_CURRENT, exportEtaBodyColNeedPx(colAcc.etaCurrentChars)) + EXPORT_COL_SLACK_PX;
+
+    var activeEff = brief
+      ? { p: wEP0, c: wEC0, n: wEN0, r: 0 }
+      : { p: wEP0, c: wEC0, n: wEN0, r: wER0 };
+    /** Split total px across columns by weight; sums exactly to totalInt (largest remainder). */
+    function exportLargestRemainderPx(weights, totalInt) {
+      var n = weights.length;
+      if (n === 0) return [];
+      var sumW = weights.reduce(function (a, x) { return a + x; }, 0);
+      if (sumW <= 0) {
+        var base = Math.floor(totalInt / n);
+        var outEq = [];
+        var remEq = totalInt;
+        for (var e = 0; e < n; e++) {
+          var v = e === n - 1 ? remEq : base;
+          outEq.push(v);
+          remEq -= v;
+        }
+        return outEq;
+      }
+      var exact = weights.map(function (w) { return (w / sumW) * totalInt; });
+      var floorPx = exact.map(function (x) { return Math.floor(x); });
+      var assigned = floorPx.reduce(function (a, x) { return a + x; }, 0);
+      var leftover = totalInt - assigned;
+      var order = exact.map(function (x, i) { return { i: i, r: x - floorPx[i] }; })
+        .sort(function (a, b) { return b.r - a.r; });
+      var out = floorPx.slice();
+      for (var k = 0; k < leftover; k++) {
+        out[order[k % n].i]++;
+      }
+      return out;
+    }
+    var effortTotalActive = activeEff.p + activeEff.c + activeEff.n + activeEff.r;
+    var idleAlloc = brief
+      ? exportLargestRemainderPx([wEP0, wEC0], effortTotalActive)
+      : exportLargestRemainderPx([wEP0, wEC0, wER0], effortTotalActive);
+    var idleEff = brief
+      ? { p: idleAlloc[0], c: idleAlloc[1], r: 0 }
+      : { p: idleAlloc[0], c: idleAlloc[1], r: idleAlloc[2] };
+
+    var twMain = wProject + wTask + activeEff.p + activeEff.c + activeEff.n + activeEff.r + wEtaPlanned + wEtaCurrent + wStatus + wProgress + wDetails + 32;
+    var twIdle = wProject + wTask + idleEff.p + idleEff.c + idleEff.r + wEtaPlanned + wEtaCurrent + wStatus + wProgress + wDetails + 32;
+
+    var exportColPlan = {
+      wProject: wProject,
+      wTask: wTask,
+      wEtaPlanned: wEtaPlanned,
+      wEtaCurrent: wEtaCurrent,
+      wStatus: wStatus,
+      wProgress: wProgress,
+      wDetails: wDetails,
+      activeEff: activeEff,
+      idleEff: idleEff
+    };
+    var exportColgroups = buildExportColgroupAttrs(exportColPlan);
+
     var exportCss =
-      'body{font-family:Calibri,Arial,sans-serif;color:#111827;background:#fff;padding:20px;line-height:1.4;font-size:13px}' +
-      '.export-ws-title{font-size:18px;font-weight:700;margin:0 0 16px;color:#111827}' +
-      '.export-ws-subtitle{font-size:15px;font-weight:700;margin:28px 0 10px;color:#111827}' +
-      '.export-bw-table{border-collapse:collapse;margin:0 0 22px;width:auto;min-width:320px}' +
-      '.export-bw-table th.export-bw-head,.export-bw-table td{border:1px solid #6b7280;padding:8px 14px;text-align:left}' +
-      '.export-bw-table th.export-bw-head{background:#bfbfbf;font-weight:700;text-align:center}' +
-      '.export-bw-table tbody td:first-child{font-weight:600}' +
-      'body{overflow-x:visible}' +
-      '.export-work-table{table-layout:auto;width:auto;min-width:1680px;border-collapse:collapse;margin:8px 0 20px;font-size:12px}' +
-      '.export-work-table col.export-col-task{min-width:16em;max-width:26em;width:26em}' +
-      '.export-work-table col.export-col-progress{width:580px;min-width:540px}' +
-      '.export-work-table col.export-col-details{width:520px;min-width:500px}' +
-      '.export-work-table col.export-col-effort{min-width:7.75em;width:7.75em;max-width:7.75em}' +
-      '.export-work-table thead th{background:#bfbfbf;border:1px solid #6b7280;padding:8px 6px;font-weight:700;text-align:center;vertical-align:middle}' +
-      '.export-work-table thead th.export-th-shrink{white-space:nowrap;width:1%}' +
-      '.export-work-table thead th.export-th-effort{white-space:normal;text-align:center;line-height:1.25;font-size:11px;vertical-align:middle;min-width:7.75em;max-width:7.75em;width:7.75em;word-wrap:break-word;overflow-wrap:break-word}' +
-      '.export-work-table thead th.export-th-eta-planned,.export-work-table thead th.export-th-eta-current{white-space:normal;width:1%;max-width:12em;line-height:1.3}' +
-      '.export-work-table tbody td{border:1px solid #6b7280;padding:8px 6px;vertical-align:top}' +
-      '.export-td-project{font-weight:600;text-align:center;vertical-align:middle;background:#f9fafb;white-space:nowrap;width:1%}' +
-      '.export-td-task{text-align:left;word-wrap:break-word;overflow-wrap:break-word;word-break:break-word}' +
-      '.export-td-num{text-align:center;white-space:nowrap}' +
-      '.export-work-table td.export-td-eff-planned,.export-work-table td.export-td-eff-cumulative,.export-work-table td.export-td-eff-new,.export-work-table td.export-td-eff-remaining{min-width:7.75em;max-width:7.75em;width:7.75em}' +
+      'body{box-sizing:border-box;margin:0;padding:24px 20px 32px;font-family:system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Calibri,Arial,sans-serif;font-size:13px;line-height:1.55;color:#1e293b;background:linear-gradient(165deg,#eef2f6 0%,#e2e8f0 45%,#f1f5f9 100%);-webkit-font-smoothing:antialiased;overflow-x:auto}' +
+      '*,*:before,*:after{box-sizing:inherit}' +
+      '.export-root{width:max-content;max-width:none;min-width:100%;margin:0 auto;background:#fff;border-radius:16px;box-shadow:0 4px 6px -1px rgba(15,23,42,.07),0 12px 28px -6px rgba(15,23,42,.12);padding:32px 36px 40px;border:1px solid rgba(148,163,184,.4);box-sizing:border-box}' +
+      '.export-header{margin:0 0 8px;padding-bottom:22px;border-bottom:1px solid #e2e8f0}' +
+      '.export-ws-title{font-size:1.6rem;font-weight:800;margin:0;letter-spacing:-.03em;color:#0f172a;line-height:1.2}' +
+      '.export-ws-dot{color:#cbd5e1;font-weight:500;margin:0 2px}' +
+      '.export-ws-range{font-weight:600;color:#64748b;font-size:1.35rem}' +
+      '.export-section{margin-bottom:30px}' +
+      '.export-section:last-child{margin-bottom:0}' +
+      '.export-ws-subheading{font-size:1.15rem;font-weight:700;margin:0;color:#0f172a;letter-spacing:-.02em;line-height:1.35}' +
+      '.export-ws-subtitle{font-size:1.08rem;font-weight:700;margin:0 0 14px;color:#0f172a;letter-spacing:-.02em}' +
+      '.export-section-idle{padding-top:0;margin-top:0;border-top:0}' +
+      'hr.export-delimiter{border:0;border-top:1px solid #cbd5e1;margin:22px 0;height:0;background:transparent}' +
+      'hr.export-delimiter-subtable{margin:14px 0 20px}' +
+      '.export-bw-table{width:100%;max-width:440px;border-collapse:separate;border-spacing:0;border-radius:12px;overflow:hidden;box-shadow:0 1px 3px rgba(15,23,42,.08);border:1px solid #cbd5e1;font-size:13px}' +
+      '.export-bw-table th.export-bw-head,.export-bw-table td{border-bottom:1px solid #e2e8f0;padding:12px 18px;text-align:left;vertical-align:middle}' +
+      '.export-bw-table tr:last-child td{border-bottom:0}' +
+      '.export-bw-table th.export-bw-head{background:#334155;color:#f8fafc;font-weight:700;text-align:center;font-size:11px;letter-spacing:.08em;text-transform:uppercase;border-bottom:0;padding:14px 18px}' +
+      '.export-bw-table tbody tr:nth-child(odd){background:#f8fafc}' +
+      '.export-bw-table tbody tr:nth-child(even){background:#fff}' +
+      '.export-bw-table tbody td:first-child{font-weight:600;color:#334155}' +
+      '.export-bw-table .export-td-num{text-align:right;font-variant-numeric:tabular-nums;color:#0f172a;font-weight:600}' +
+      '.export-work-table{table-layout:fixed;border-collapse:collapse;margin:0;font-size:12px;box-shadow:0 2px 10px rgba(15,23,42,.06);border:1px solid #cbd5e1;border-radius:10px;overflow:hidden}' +
+      '.export-work-table thead th{background:#334155;color:#f1f5f9;border:1px solid #475569;padding:11px 8px;font-weight:600;text-align:center;vertical-align:middle;font-size:11px;letter-spacing:.02em}' +
+      '.export-work-table thead th.export-th-shrink{white-space:nowrap}' +
+      '.export-work-table thead th.export-th-effort{white-space:normal;text-align:center;line-height:1.3;font-size:10px;vertical-align:middle;word-wrap:break-word;overflow-wrap:break-word;text-transform:none;letter-spacing:0}' +
+      '.export-work-table thead th.export-th-eta-planned,.export-work-table thead th.export-th-eta-current{white-space:normal;line-height:1.35}' +
+      '.export-work-table tbody td{border:1px solid #e2e8f0;padding:11px 9px;vertical-align:top;background-clip:padding-box}' +
+      '.export-td-project{font-weight:600;text-align:center;vertical-align:middle;background:linear-gradient(180deg,#f1f5f9 0%,#e8eef4 100%);white-space:nowrap;color:#334155;border-color:#cbd5e1}' +
+      '.export-td-task{text-align:left;word-wrap:break-word;overflow-wrap:break-word;word-break:break-word;color:#1e293b}' +
+      '.export-td-num{text-align:center;white-space:nowrap;font-variant-numeric:tabular-nums}' +
+      '.export-work-table td.export-td-eff-planned,.export-work-table td.export-td-eff-cumulative,.export-work-table td.export-td-eff-new,.export-work-table td.export-td-eff-remaining{overflow-wrap:break-word;word-wrap:break-word}' +
       '.export-work-table td.export-td-eff-planned{white-space:normal;vertical-align:top}' +
       '.export-work-table tbody td.export-td-merge{vertical-align:middle;text-align:center}' +
       '.export-work-table td.export-td-merge.export-td-eff-planned{vertical-align:top}' +
-      '.export-td-status{text-align:center;white-space:nowrap;width:1%}' +
-      '.export-work-table col.export-col-eta-planned,.export-work-table col.export-col-eta-current{width:10.5em;max-width:12em;min-width:9em}' +
-      '.export-td-eta-planned{text-align:center;font-size:11px;white-space:normal;vertical-align:top;line-height:1.45}' +
-      '.export-td-eta-current{text-align:center;font-size:11px;white-space:normal;vertical-align:top;line-height:1.45}' +
+      'tr.export-row-main > td.export-td-eff-cumulative:not(.export-td-merge){vertical-align:top;text-align:center}' +
+      '.export-td-status{text-align:center;white-space:nowrap}' +
+      '.export-td-eta-planned{text-align:center;font-size:11px;white-space:normal;vertical-align:top;line-height:1.5;color:#334155}' +
+      '.export-td-eta-current{text-align:center;font-size:11px;white-space:normal;vertical-align:top;line-height:1.5;color:#334155}' +
       '.export-eta-stack{display:block;text-align:center}' +
-      '.export-eta-stack-line{display:block;line-height:1.45}' +
+      '.export-eta-stack-line{display:block;line-height:1.5}' +
       '.export-effort-stack{display:block;text-align:center}' +
-      '.export-effort-stack-line{display:block;line-height:1.45}' +
-      '.export-td-details,.export-td-progress{font-size:11px;line-height:1.45;word-wrap:break-word;overflow-wrap:break-word;word-break:break-word;white-space:normal}' +
-      '.export-work-table thead th.export-th-progress{text-align:left}' +
-      '.export-td-progress{text-align:left;min-width:540px}' +
+      '.export-effort-stack-line{display:block;line-height:1.5}' +
+      '.export-td-details,.export-td-progress{font-size:11.5px;line-height:1.55;word-wrap:break-word;overflow-wrap:break-word;word-break:break-word;white-space:normal;color:#334155}' +
+      '.export-work-table thead th.export-th-progress{text-align:left;padding-left:12px}' +
+      '.export-td-progress{text-align:left;min-width:0}' +
       '.export-td-progress .export-progress-wrap,.export-td-progress .export-p-label,.export-td-progress .export-p-body,.export-td-progress .export-c-body{text-align:left}' +
       '.export-td-progress .concern-open,.export-td-progress .concern-addressed{text-align:left}' +
-      '.export-work-table.export-work-table-idle{min-width:1600px}' +
-      '.export-work-table.export-work-table-idle col.export-col-progress{width:290px;min-width:270px}' +
-      '.export-work-table.export-work-table-idle .export-td-progress{min-width:270px}' +
-      '.export-td-details{min-width:500px}' +
-      '.export-task-main{font-weight:700}.export-sub-task-row{display:block;font-weight:600;color:#374151;padding:2px 0 2px 14px;margin-left:10px;border-left:3px solid #cbd5e1}' +
-      'tr.export-row-sub .export-td-task{padding-left:18px}' +
-      'tr.export-row-sub .export-td-details{padding-left:18px}' +
-      '.export-progress-wrap{}.export-p-label{font-weight:700;margin-top:2px}.export-p-label-gap{margin-top:10px}' +
-      '.export-p-body,.export-c-body{margin:4px 0 0}' +
-      'tr.export-row-highlight{background:#d4edda}tr.export-row-highlight td{background:transparent}' +
-      'tr.export-row-main td{background:#fafafa}tr.export-row-sub td{background:#fff}' +
-      'tr.export-row-highlight.export-row-main td,tr.export-row-highlight.export-row-sub td{background:transparent}' +
+      '.export-work-table.export-work-table-idle .export-td-progress{min-width:0}' +
+      '.export-td-details{min-width:0}' +
+      '.export-task-main{font-weight:700;color:#0f172a;font-size:12.5px}' +
+      '.export-sub-task-row{display:block;font-weight:600;color:#475569;padding:4px 0 4px 14px;margin-left:8px;border-left:3px solid #94a3b8;border-radius:0 6px 6px 0}' +
+      'tr.export-row-sub .export-td-task{padding-left:16px}' +
+      'tr.export-row-sub .export-td-details{padding-left:16px}' +
+      '.export-p-label{font-weight:700;margin-top:2px;color:#0f172a;font-size:11px}' +
+      '.export-p-label-gap{margin-top:12px}' +
+      '.export-p-body,.export-c-body{margin:6px 0 0}' +
+      'tr.export-row-highlight td{background-color:#ecfdf5!important}' +
+      'tr.export-row-highlight.export-row-main td,tr.export-row-highlight.export-row-sub td{background-color:#ecfdf5!important}' +
+      'tr.export-row-main td{background:#fafbfc}' +
+      'tr.export-row-sub td{background:#fff}' +
+      'tr.export-row-main.export-row-highlight td,tr.export-row-sub.export-row-highlight td{background-color:#ecfdf5!important}' +
+      '.export-empty-row td.export-empty-msg{text-align:center;padding:36px 24px!important;font-style:italic;color:#64748b;font-size:13px;background:#f8fafc!important}' +
       '.export-project-pill{display:inline-flex;align-items:center;padding:2px 8px;border-radius:999px;font-size:10px;border:1px solid #93c5fd;background:#eff6ff;color:#1d4ed8;margin-left:6px;vertical-align:middle}' +
-      '.export-included-pill{display:inline-flex;align-items:center;padding:2px 7px;border-radius:999px;font-size:9px;font-weight:700;border:1px solid #f9a8d4;background:#fce7f3;color:#be185d;margin-left:6px;vertical-align:middle}' +
-      '.status-btn{display:inline-block;padding:2px 10px;border-radius:999px;font-size:11px;font-weight:700;border:1px solid}' +
-      '.status-btn.done{background:#eaf7ee;border-color:#a7d7b4;color:#1f6f3a}.status-btn.ongoing{background:#fff7e6;border-color:#f3d48a;color:#8a6000}' +
-      '.status-btn.open{background:#eaf2ff;border-color:#a9c4ff;color:#1f4ea8}.status-btn.other{background:#f3f4f6;border-color:#d1d5db;color:#4b5563}' +
-      '.negative{color:#b91c1c;font-weight:700}.muted{color:#6b7280}' +
-      '.concern-open{background:#fff1f2;border-left:3px solid #ef4444;padding:3px 6px;margin:3px 0}' +
-      '.concern-addressed{background:#ecfdf5;border-left:3px solid #10b981;padding:3px 6px;margin:3px 0}' +
-      'a.auto-link{color:#2563eb;text-decoration:underline;word-break:break-all}' +
+      '.export-included-pill{display:inline-flex;align-items:center;padding:3px 8px;border-radius:999px;font-size:9px;font-weight:700;border:1px solid #f9a8d4;background:linear-gradient(180deg,#fdf2f8 0%,#fce7f3 100%);color:#9d174d;margin-left:8px;vertical-align:middle}' +
+      '.status-btn{display:inline-block;padding:4px 12px;border-radius:999px;font-size:11px;font-weight:700;border:1px solid;box-shadow:0 1px 2px rgba(15,23,42,.06)}' +
+      '.status-btn.done{background:linear-gradient(180deg,#ecfdf5 0%,#d1fae5 100%);border-color:#6ee7b7;color:#065f46}' +
+      '.status-btn.ongoing{background:linear-gradient(180deg,#fffbeb 0%,#fef3c7 100%);border-color:#fcd34d;color:#92400e}' +
+      '.status-btn.open{background:linear-gradient(180deg,#eff6ff 0%,#dbeafe 100%);border-color:#93c5fd;color:#1e40af}' +
+      '.status-btn.other{background:#f1f5f9;border-color:#cbd5e1;color:#475569}' +
+      '.negative{color:#b91c1c;font-weight:700}.muted{color:#64748b}' +
+      '.concern-open{background:linear-gradient(90deg,#fff1f2 0%,#fff 100%);border-left:4px solid #f87171;border-radius:0 8px 8px 0;padding:8px 10px;margin:6px 0;box-shadow:0 1px 2px rgba(15,23,42,.04)}' +
+      '.concern-addressed{background:linear-gradient(90deg,#ecfdf5 0%,#fff 100%);border-left:4px solid #34d399;border-radius:0 8px 8px 0;padding:8px 10px;margin:6px 0;box-shadow:0 1px 2px rgba(15,23,42,.04)}' +
+      'a.auto-link{color:#2563eb;text-decoration:underline;text-underline-offset:2px;word-break:break-all}' +
+      'a.auto-link:hover{color:#1d4ed8}' +
       '.export-eta-slip{color:#b91c1c;font-weight:700}' +
-      '.export-eta-pullin{color:#15803d;font-weight:700}' +
-      '.export-eta-neutral{color:#4b5563}' +
+      '.export-eta-pullin{color:#047857;font-weight:700}' +
+      '.export-eta-neutral{color:#64748b}' +
       '.export-effort-increase{color:#b91c1c;font-weight:700}' +
-      '.export-effort-decrease{color:#15803d;font-weight:700}' +
-      '.export-effort-same{color:#4b5563}';
+      '.export-effort-decrease{color:#047857;font-weight:700}' +
+      '.export-effort-same{color:#64748b}';
 
     var titleRange = formatDateDMY(from) + ' to ' + formatDateDMY(to);
+
+    var cumEffortTitle = 'Effort spent so far excluding new effort: hours logged outside the selected From–To range (before From or after To).';
+    var mainEffortColspan = brief ? 3 : 4;
+    var mainEffortSubHeadRow = brief
+      ? '<th class="export-th-effort">Planned</th><th class="export-th-effort" title="' + cumEffortTitle + '">Cumulative Effort</th><th class="export-th-effort" title="Effort logged on dates from From through To (inclusive)">New Effort</th>'
+      : '<th class="export-th-effort">Planned</th><th class="export-th-effort" title="' + cumEffortTitle + '">Cumulative Effort</th><th class="export-th-effort" title="Effort logged on dates from From through To (inclusive)">New Effort</th><th class="export-th-effort">Remaining Effort</th>';
+    var idleEffortColspan = brief ? 2 : 3;
+    var idleEffortSubHeadRow = brief
+      ? '<th class="export-th-effort">Planned</th><th class="export-th-effort" title="' + cumEffortTitle + '">Cumulative Effort</th>'
+      : '<th class="export-th-effort">Planned</th><th class="export-th-effort" title="' + cumEffortTitle + '">Cumulative Effort</th><th class="export-th-effort">Remaining Effort</th>';
+    var exportThStatusProgress = '<th rowspan="2" class="export-th-shrink">Status</th>' +
+      '<th rowspan="2" class="export-th-progress">Progress</th>' +
+      (brief ? '' : '<th rowspan="2">Task Details</th>');
+    var emptyColspanMain = brief ? 9 : 11;
 
     var idleTableBlock = '';
     if (exportIdleTasks.length) {
       idleTableBlock =
-        '<p class="export-ws-subtitle">Tasks with No Progress</p>' +
-        '<table class="export-work-table export-work-table-idle">' +
-        '<colgroup>' +
-        '<col>' +
-        '<col class="export-col-task">' +
-        '<col class="export-col-effort"><col class="export-col-effort"><col class="export-col-effort">' +
-        '<col class="export-col-eta-planned"><col class="export-col-eta-current">' +
-        '<col>' +
-        '<col class="export-col-progress"><col class="export-col-details">' +
-        '</colgroup>' +
+        '<div class="export-section export-section-idle">' +
+        '<h2 class="export-ws-subheading">Tasks with No Progress</h2>' +
+        '<hr class="export-delimiter export-delimiter-subtable">' +
+        '<table class="export-work-table export-work-table-idle" style="table-layout:fixed;min-width:' + twIdle + 'px;width:' + twIdle + 'px">' +
+        exportColgroups.idle +
         '<thead>' +
         '<tr>' +
         '<th rowspan="2" class="export-th-shrink">Project</th>' +
         '<th rowspan="2">Task</th>' +
-        '<th colspan="3">Effort</th>' +
+        '<th colspan="' + idleEffortColspan + '">Effort</th>' +
         '<th colspan="2">ETA</th>' +
-        '<th rowspan="2" class="export-th-shrink">Status</th>' +
-        '<th rowspan="2" class="export-th-progress">Progress</th>' +
-        '<th rowspan="2">Task Details</th>' +
+        exportThStatusProgress +
         '</tr>' +
         '<tr>' +
-        '<th class="export-th-effort">Planned</th>' +
-        '<th class="export-th-effort" title="Effort spent so far excluding new effort: hours logged outside the selected From–To range (before From or after To).">Cumulative Effort</th>' +
-        '<th class="export-th-effort">Remaining Effort</th>' +
+        idleEffortSubHeadRow +
         '<th class="export-th-eta-planned">Planned</th>' +
         '<th class="export-th-eta-current">Current</th>' +
         '</tr>' +
         '</thead><tbody>' +
         idleGridRows.join('') +
-        '</tbody></table>';
+        '</tbody></table></div>';
     }
 
-    return '<!doctype html><html><head><meta charset="UTF-8"><title>Work Summary Export</title><style>' + exportCss + '</style></head><body>' +
-      '<p class="export-ws-title">Work Summary : ' + titleRange + '</p>' +
+    var bodyInner =
+      '<div class="export-root">' +
+      '<header class="export-header"><h1 class="export-ws-title">Work Summary <span class="export-ws-dot">·</span> <span class="export-ws-range">' + titleRange + '</span></h1></header>' +
       bandwidthBlock +
-      '<table class="export-work-table">' +
-      '<colgroup>' +
-        '<col>' +
-        '<col class="export-col-task">' +
-        '<col class="export-col-effort"><col class="export-col-effort"><col class="export-col-effort"><col class="export-col-effort">' +
-        '<col class="export-col-eta-planned"><col class="export-col-eta-current">' +
-        '<col>' +
-        '<col class="export-col-progress"><col class="export-col-details">' +
-      '</colgroup>' +
+      '<hr class="export-delimiter">' +
+      '<div class="export-section export-section-tasks">' +
+      '<h2 class="export-ws-subheading">Task Updates</h2>' +
+      '<hr class="export-delimiter export-delimiter-subtable">' +
+      '<table class="export-work-table" style="table-layout:fixed;min-width:' + twMain + 'px;width:' + twMain + 'px">' +
+      exportColgroups.main +
       '<thead>' +
       '<tr>' +
         '<th rowspan="2" class="export-th-shrink">Project</th>' +
         '<th rowspan="2">Task</th>' +
-        '<th colspan="4">Effort</th>' +
+        '<th colspan="' + mainEffortColspan + '">Effort</th>' +
         '<th colspan="2">ETA</th>' +
-        '<th rowspan="2" class="export-th-shrink">Status</th>' +
-        '<th rowspan="2" class="export-th-progress">Progress</th>' +
-        '<th rowspan="2">Task Details</th>' +
+        exportThStatusProgress +
       '</tr>' +
       '<tr>' +
-        '<th class="export-th-effort">Planned</th><th class="export-th-effort" title="Effort spent so far excluding new effort: hours logged outside the selected From–To range (before From or after To).">Cumulative Effort</th><th class="export-th-effort" title="Effort logged on dates from From through To (inclusive)">New Effort</th><th class="export-th-effort">Remaining Effort</th>' +
+        mainEffortSubHeadRow +
         '<th class="export-th-eta-planned">Planned</th><th class="export-th-eta-current">Current</th>' +
       '</tr>' +
       '</thead><tbody>' +
-      (gridRows.length ? gridRows.join('') : '<tr><td colspan="11">No tasks with progress in this range.</td></tr>') +
-      '</tbody></table>' +
+      (gridRows.length ? gridRows.join('') : '<tr class="export-empty-row"><td colspan="' + emptyColspanMain + '" class="export-empty-msg">No tasks with progress in this range.</td></tr>') +
+      '</tbody></table></div>' +
+      (exportIdleTasks.length ? '<hr class="export-delimiter">' : '') +
       idleTableBlock +
+      '</div>';
+
+    var htmlDocument =
+      '<!doctype html><html><head><meta charset="UTF-8"><title>Work Summary Export</title><style>' +
+      exportCss +
+      '</style></head><body>' +
+      bodyInner +
       '</body></html>';
+
+    return {
+      document: htmlDocument,
+      htmlOnly: bodyInner,
+      cssOnly: exportCss
+    };
+  }
+
+  function buildSummaryExportHtml(meta) {
+    return buildSummaryExportHtmlParts(meta).document;
+  }
+
+  /**
+   * Confluence Cloud markdown export: same data as HTML export, vertical layout.
+   * Bold for emphasis where needed; Atlassian markdown has no text color.
+   */
+  function buildSummaryExportConfluenceMarkdown(meta) {
+    var from = meta.from;
+    var to = meta.to;
+    var activeTasks = meta.activeTasks || [];
+    var idleTasks = meta.idleTasks || [];
+    var exportActiveTasks = tasksForExportWorkTable(activeTasks, from);
+    var exportIdleTasks = tasksForExportWorkTable(idleTasks, from);
+    var exportSettings = getSettings();
+    var exportHpd = parseFloat(exportSettings.workingHoursPerDay);
+    if (isNaN(exportHpd) || exportHpd <= 0) exportHpd = 8;
+
+    function inRange(dateStr) {
+      return dateStr && dateStr >= from && dateStr <= to;
+    }
+    function formatDateDMYPlain(ymd) {
+      if (!ymd || typeof ymd !== 'string') return '—';
+      var m = ymd.match(/^(\d{4})-(\d{2})-(\d{2})/);
+      if (!m) return String(ymd);
+      return m[3] + '-' + m[2] + '-' + m[1];
+    }
+    function cfPlainForTable(s) {
+      return String(s)
+        .replace(/\r\n|\r|\n/g, ' ')
+        .replace(/\|/g, '\\|');
+    }
+    /** Markdown bold; strip inner `*` so we do not break `**` pairs. */
+    function mdBoldInner(text) {
+      return '**' + String(text).replace(/\*/g, '') + '**';
+    }
+    function linkifyConfluenceCell(plain) {
+      if (plain == null || plain === '') return '';
+      var s = String(plain);
+      var parts = [];
+      var last = 0;
+      URL_IN_TEXT_RE.lastIndex = 0;
+      var m;
+      while ((m = URL_IN_TEXT_RE.exec(s)) !== null) {
+        parts.push(cfPlainForTable(s.slice(last, m.index)));
+        var raw = m[0];
+        var sp = splitUrlTrailingPunct(raw);
+        var core = sp.core;
+        var tail = sp.tail;
+        if (!core) {
+          parts.push(cfPlainForTable(raw));
+          last = m.index + raw.length;
+          continue;
+        }
+        var href = /^https?:\/\//i.test(core) ? core : 'https://' + core;
+        var display = cfPlainForTable(core);
+        parts.push('[' + display + '](' + href + ')');
+        parts.push(cfPlainForTable(tail));
+        last = m.index + raw.length;
+      }
+      parts.push(cfPlainForTable(s.slice(last)));
+      return parts.join('');
+    }
+    /** Heading line: `[ Project ] Title` when project is set; otherwise title only (matches summary pills). */
+    function confluenceTitleWithProject(projectRaw, titleRaw) {
+      var p = projectRaw != null ? String(projectRaw).trim() : '';
+      var titlePart = linkifyConfluenceCell(titleRaw || '(no title)');
+      if (!p) return titlePart;
+      return '[ ' + linkifyConfluenceCell(p) + ' ] ' + titlePart;
+    }
+    /** Table cell: escape `|`. May contain markdown bold. */
+    function mdTableCell(s) {
+      if (s == null || s === '') return '—';
+      return String(s).replace(/\|/g, '\\|');
+    }
+    function statusBadgeConfluence(raw) {
+      var label = (raw == null || raw === '' ? 'Open' : String(raw)).trim();
+      return mdBoldInner(label);
+    }
+    function formatEffortExportNum(n) {
+      var x = Number(n);
+      if (isNaN(x)) return '0';
+      if (Math.abs(x - Math.round(x)) < 0.001) return String(Math.round(x));
+      var t = Math.round(x * 10) / 10;
+      return String(t).replace(/\.0$/, '');
+    }
+    /** ETA trail: bold → step when date slipped or pulled in; plain → when unchanged. */
+    function buildEtaCurrentMd(taskLike) {
+      var segs = [];
+      function pushY(y) {
+        if (!y || typeof y !== 'string') return;
+        if (segs.indexOf(y) === -1) segs.push(y);
+      }
+      var planned = (taskLike.eta_updates && taskLike.eta_updates.length && taskLike.eta_updates[0].old_eta) || taskLike.assigned_date || taskLike.eta || '';
+      if (planned) pushY(planned);
+      (taskLike.eta_updates || []).slice().sort(function (a, b) {
+        return (a.date_recorded || '').localeCompare(b.date_recorded || '');
+      }).forEach(function (u) {
+        if (u.old_eta) pushY(u.old_eta);
+        if (u.new_eta) pushY(u.new_eta);
+      });
+      if (taskLike.eta) pushY(taskLike.eta);
+      if (!segs.length) return '—';
+      var parts = [formatDateDMYPlain(segs[0])];
+      for (var ei = 1; ei < segs.length; ei++) {
+        var cmp = compareDateStr(segs[ei - 1], segs[ei]);
+        var d = formatDateDMYPlain(segs[ei]);
+        if (cmp < 0) parts.push(mdBoldInner('→ ' + d));
+        else if (cmp > 0) parts.push(mdBoldInner('→ ' + d));
+        else parts.push('→ ' + d);
+      }
+      return parts.join(' · ');
+    }
+    /** Effort history: bold → step when hours changed; plain → when unchanged. */
+    function buildPlannedEffortMd(taskLike) {
+      var updates = (taskLike.effort_updates || []).slice().sort(function (a, b) {
+        return (a.date_recorded || '').localeCompare(b.date_recorded || '');
+      });
+      var segs = [];
+      function pushN(n) {
+        if (n == null || n === '') return;
+        var num = typeof n === 'number' ? n : parseFloat(n);
+        if (isNaN(num)) return;
+        if (segs.length && Math.abs(segs[segs.length - 1] - num) < 0.0001) return;
+        segs.push(num);
+      }
+      if (updates.length) {
+        pushN(updates[0].old_effort_hours);
+        updates.forEach(function (u) {
+          pushN(u.new_effort_hours);
+        });
+      } else {
+        var req = taskLike.effort_required_hours;
+        if (req != null && req !== '') pushN(req);
+      }
+      if (!segs.length) return '—';
+      var parts = [formatEffortExportNum(segs[0])];
+      for (var hi = 1; hi < segs.length; hi++) {
+        var prevH = segs[hi - 1];
+        var curH = segs[hi];
+        var hcmp = curH > prevH ? 1 : (curH < prevH ? -1 : 0);
+        var n = formatEffortExportNum(segs[hi]);
+        if (hcmp > 0) parts.push(mdBoldInner('→ ' + n));
+        else if (hcmp < 0) parts.push(mdBoldInner('→ ' + n));
+        else parts.push('→ ' + n);
+      }
+      return parts.join(' · ');
+    }
+    /** When `omitProgress` (idle / no progress in range section), skip the whole Progress block. */
+    function pushProgressConcernsVertical(lines, updates, concerns, omitProgress) {
+      if (!omitProgress) {
+        lines.push('**Progress**');
+        if (!updates || !updates.length) {
+          lines.push('- *No progress made.*');
+        } else {
+          var ordered = sortProgressUpdatesOldestFirst(updates);
+          ordered.forEach(function (p, i) {
+            var text = (p.text || '').replace(/\s+/g, ' ').trim();
+            var hrs = p.effort_consumed_hours != null ? String(p.effort_consumed_hours) + ' hrs — ' : '';
+            lines.push('- ' + hrs + linkifyConfluenceCell(text));
+          });
+        }
+        lines.push('');
+      }
+      lines.push('**Concerns**');
+      if (!concerns || !concerns.length) {
+        lines.push('- *None*');
+      } else {
+        concerns.forEach(function (c) {
+          var st = c.status || 'Open';
+          var prefix = st === 'Addressed' ? '*(Addressed)* ' : '*(Open)* ';
+          var line = prefix + linkifyConfluenceCell(c.description || '');
+          if (c.addressed_comment) line += ' — ' + linkifyConfluenceCell(c.addressed_comment);
+          lines.push('- ' + line);
+        });
+      }
+      lines.push('');
+    }
+    function formatExportDays(d) {
+      if (d == null || isNaN(d) || d < 0.001) return '0';
+      var rounded = Math.round(d);
+      if (Math.abs(d - rounded) < 0.08) {
+        return rounded === 1 ? '1 Days' : (rounded + ' Days');
+      }
+      return '~' + d.toFixed(1).replace(/\.0$/, '') + ' Days';
+    }
+    function pushTaskDetailsVertical(lines, desc) {
+      lines.push('**Task details**');
+      if (!desc || !String(desc).trim()) {
+        lines.push('- —');
+        lines.push('');
+        return;
+      }
+      String(desc).trim().split(/\r\n|\n|\r/).forEach(function (para) {
+        var t = para.trim();
+        if (!t) return;
+        lines.push('- ' + linkifyConfluenceCell(t));
+      });
+      lines.push('');
+    }
+
+    var projectHours = {};
+    function addProjHours(proj, hrs) {
+      var h = Number(hrs) || 0;
+      if (h < 0.001) return;
+      var k = (proj != null && String(proj).trim()) ? String(proj).trim() : 'Miscellaneous';
+      projectHours[k] = (projectHours[k] || 0) + h;
+    }
+    exportActiveTasks.forEach(function (t) {
+      addProjHours(t.project, taskEffortInRangeMainAttributed(t, from, to));
+      (t.subtasks || []).forEach(function (s) {
+        if (!subtaskHasDedicatedEffort(s)) return;
+        var su = (s.progress_updates || []).filter(function (p) { return inRange(p.date_added); });
+        var sh = su.reduce(function (sum, p) { return sum + (Number(p.effort_consumed_hours) || 0); }, 0);
+        addProjHours(s.project, sh);
+      });
+    });
+
+    function oooEntryDayEquivalent(off) {
+      if (!off) return 0;
+      var typ = (off.type || '').toLowerCase();
+      if (typ === 'full') return 1;
+      var hOff = parseFloat(off.hoursOff);
+      if (isNaN(hOff)) hOff = 0;
+      hOff = Math.min(Math.max(0, hOff), exportHpd);
+      return hOff / exportHpd;
+    }
+    var ptoAgg = 0;
+    var sickAgg = 0;
+    var otherAgg = 0;
+    (exportSettings.dayOffs || []).forEach(function (off) {
+      if (!off || !off.date || off.date < from || off.date > to) return;
+      var eq = oooEntryDayEquivalent(off);
+      var reason = off.reason || 'Other';
+      if (reason === 'PTO') ptoAgg += eq;
+      else if (reason === 'Sick') sickAgg += eq;
+      else otherAgg += eq;
+    });
+    var oooDaysTotal = ptoAgg + sickAgg + otherAgg;
+    var miscHours = projectHours.Miscellaneous || 0;
+    var projKeys = Object.keys(projectHours).filter(function (k) { return k !== 'Miscellaneous'; }).sort(function (a, b) { return a.localeCompare(b); });
+
+    /** Single **Effort/ETA** heading; effort table immediately followed by ETA table (no subheading between). */
+    function pushEffortEtaSection(lines, plannedMd, cumMd, newStr, remCell, omitNewEffort, plannedEtaCell, etaCurrentMd) {
+      lines.push('**Effort/ETA**');
+      lines.push('');
+      if (omitNewEffort) {
+        lines.push('| Planned (h) | Cumulative (outside range) | Remaining |');
+        lines.push('| --- | --- | --- |');
+        lines.push('| ' + mdTableCell(plannedMd) + ' | ' + mdTableCell(cumMd) + ' | ' + mdTableCell(remCell) + ' |');
+      } else {
+        lines.push('| Planned (h) | Cumulative (outside range) | New (in range) | Remaining |');
+        lines.push('| --- | --- | --- | --- |');
+        lines.push('| ' + mdTableCell(plannedMd) + ' | ' + mdTableCell(cumMd) + ' | ' + mdTableCell(newStr) + ' | ' + mdTableCell(remCell) + ' |');
+      }
+      lines.push('');
+      lines.push('| Planned (anchor) | Current (trail) |');
+      lines.push('| --- | --- |');
+      lines.push('| ' + mdTableCell(plannedEtaCell) + ' | ' + mdTableCell(etaCurrentMd || '—') + ' |');
+      lines.push('');
+    }
+
+    /** Included sub: effort row mostly dashes + optional new hours; then ETA row. Under one **Effort/ETA** heading. */
+    function pushEffortEtaIncludedSubSection(lines, omitNewEffort, subNewHours, plannedCellS, etaCurrentMd) {
+      lines.push('**Effort/ETA**');
+      lines.push('');
+      var dash = '—';
+      if (omitNewEffort) {
+        lines.push('| Planned (h) | Cumulative (outside range) | Remaining |');
+        lines.push('| --- | --- | --- |');
+        lines.push('| ' + mdTableCell(dash) + ' | ' + mdTableCell(dash) + ' | ' + mdTableCell(dash) + ' |');
+      } else {
+        lines.push('| Planned (h) | Cumulative (outside range) | New (in range) | Remaining |');
+        lines.push('| --- | --- | --- | --- |');
+        lines.push('| ' + mdTableCell(dash) + ' | ' + mdTableCell(dash) + ' | ' + mdTableCell(String(subNewHours)) + ' | ' + mdTableCell(dash) + ' |');
+      }
+      lines.push('');
+      lines.push('| Planned (anchor) | Current (trail) |');
+      lines.push('| --- | --- |');
+      lines.push('| ' + mdTableCell(plannedCellS) + ' | ' + mdTableCell(etaCurrentMd || '—') + ' |');
+      lines.push('');
+    }
+
+    function appendWorkSummaryVerticalMd(out, tasks, omitNewEffort) {
+      var mainNum = 0;
+      tasks.forEach(function (t) {
+        mainNum += 1;
+        var subNum = 0;
+        function nextSubLabel() {
+          subNum += 1;
+          return String(mainNum) + '.' + String(subNum);
+        }
+
+        var subsAll = t.subtasks || [];
+        var subs = subsAll.filter(function (s) { return includeSubtaskInSummaryByDate(s, from); });
+        var includedSubs = subs.filter(function (s) { return !subtaskHasDedicatedEffort(s); });
+        var dedicatedSubs = subs.filter(function (s) { return subtaskHasDedicatedEffort(s); });
+
+        var mainProgress = sortProgressUpdatesOldestFirst((t.progress_updates || []).filter(function (p) { return inRange(p.date_added); }));
+        var mainRangeEffort = taskEffortInRangeMainAttributed(t, from, to);
+        var cumulativeOutsideRange = taskEffortOutsideRangeMainAttributed(t, from, to);
+        var spentMainAttrTotal = taskEffortSpentMainAttributed(t);
+        var latestPlannedMain = getLatestPlannedEffortHours(t);
+        var remainingMainOnly = latestPlannedMain - spentMainAttrTotal;
+        var plannedEtaRaw = (t.eta_updates && t.eta_updates.length && t.eta_updates[0].old_eta) || t.assigned_date || t.eta || '';
+        var plannedEtaCell = plannedEtaRaw ? formatDateDMYPlain(plannedEtaRaw) : '—';
+
+        var projectLabel = linkifyConfluenceCell(t.project || 'Miscellaneous');
+        var taskTitle = confluenceTitleWithProject(t.project, t.title || '(no title)');
+        var plannedMd = buildPlannedEffortMd(t);
+        var cumMd = String(cumulativeOutsideRange);
+        var newMainStr = String(mainRangeEffort);
+        var remMd = String(remainingMainOnly);
+        var remCellMain = remainingMainOnly < 0
+          ? mdBoldInner(remMd + ' (over plan)')
+          : mdTableCell(remMd);
+
+        out.push('### ' + mainNum + '. ' + taskTitle);
+        out.push('');
+        out.push('*Project:* ' + projectLabel + ' · *Status:* ' + statusBadgeConfluence(t.status || 'Open'));
+        out.push('');
+
+        pushEffortEtaSection(out, plannedMd, cumMd, newMainStr, remCellMain, omitNewEffort, plannedEtaCell, buildEtaCurrentMd(t));
+        pushProgressConcernsVertical(out, mainProgress, t.concerns || [], omitNewEffort);
+        pushTaskDetailsVertical(out, t.description);
+
+        includedSubs.forEach(function (s) {
+          var subUpdates = sortProgressUpdatesOldestFirst((s.progress_updates || []).filter(function (p) { return inRange(p.date_added); }));
+          var subEffort = subUpdates.reduce(function (sum, p) { return sum + progressEffortHours(p); }, 0);
+          var plannedRawS = s.assigned_date || s.eta || '';
+          var plannedCellS = plannedRawS ? formatDateDMYPlain(plannedRawS) : '—';
+          out.push('#### ' + nextSubLabel() + ' Sub-task (included): ' + confluenceTitleWithProject(s.project, s.title || '(no title)'));
+          out.push('');
+          out.push('*Status:* ' + statusBadgeConfluence(s.status || 'Open'));
+          out.push('');
+          pushEffortEtaIncludedSubSection(out, omitNewEffort, subEffort, plannedCellS, buildEtaCurrentMd(s));
+          pushProgressConcernsVertical(out, subUpdates, s.concerns || [], omitNewEffort);
+          pushTaskDetailsVertical(out, s.description);
+        });
+
+        dedicatedSubs.forEach(function (s) {
+          var subUpdates = sortProgressUpdatesOldestFirst((s.progress_updates || []).filter(function (p) { return inRange(p.date_added); }));
+          var subEffort = subUpdates.reduce(function (sum, p) { return sum + progressEffortHours(p); }, 0);
+          var reqS = getLatestPlannedEffortHours(s);
+          var spentS = subtaskEffortSpent(s);
+          var cumulativeOutsideSub = subtaskEffortOutsideRange(s, from, to);
+          var remS = reqS - spentS;
+          var plannedRawS = s.assigned_date || s.eta || '';
+          var plannedCellS = plannedRawS ? formatDateDMYPlain(plannedRawS) : '—';
+          var remCellSub = remS < 0 ? mdBoldInner(String(remS) + ' (over plan)') : mdTableCell(String(remS));
+
+          out.push('#### ' + nextSubLabel() + ' Sub-task: ' + confluenceTitleWithProject(s.project, s.title || '(no title)'));
+          out.push('');
+          out.push('*Status:* ' + statusBadgeConfluence(s.status || 'Open'));
+          out.push('');
+          pushEffortEtaSection(out, buildPlannedEffortMd(s), String(cumulativeOutsideSub), String(subEffort), remCellSub, omitNewEffort, plannedCellS, buildEtaCurrentMd(s));
+          pushProgressConcernsVertical(out, subUpdates, s.concerns || [], omitNewEffort);
+          pushTaskDetailsVertical(out, s.description);
+        });
+
+        out.push('---');
+        out.push('');
+      });
+    }
+
+    var titleRange = formatDateDMYPlain(from) + ' to ' + formatDateDMYPlain(to);
+    var lines = [];
+    lines.push('# Work Summary: ' + titleRange);
+    lines.push('');
+    lines.push('Exported from **FlowAssist** for **Confluence Cloud** (markdown shortcuts). [Atlassian’s markdown reference](https://support.atlassian.com/confluence-cloud/docs/available-markdown-commands/) does **not** include text color — use the editor **Text color** control after paste if you want color. **Bold** in an ETA or effort chain marks a changed step; **bold** remaining means over plan. Same data and filters as the HTML/CSS export.');
+    lines.push('');
+    lines.push('## Bandwidth');
+    lines.push('');
+    lines.push('*Days equivalent at ' + String(exportHpd) + ' h/day.*');
+    lines.push('');
+    projKeys.forEach(function (k) {
+      var d = projectHours[k] / exportHpd;
+      lines.push('- **' + cfPlainForTable(k) + ':** ' + formatExportDays(d));
+    });
+    lines.push('- **Miscellaneous:** ' + formatExportDays(miscHours / exportHpd));
+    lines.push('- **OOO:** ' + formatExportDays(oooDaysTotal));
+    lines.push('');
+
+    lines.push('## Tasks with progress in range');
+    lines.push('');
+    if (exportActiveTasks.length) {
+      appendWorkSummaryVerticalMd(lines, exportActiveTasks, false);
+    } else {
+      lines.push('*No tasks with progress in this range (after export filters).*');
+      lines.push('');
+    }
+
+    if (exportIdleTasks.length) {
+      lines.push('## Tasks with no progress');
+      lines.push('');
+      lines.push('*Same scope as the on-screen idle section: no “new effort” line; planned / cumulative / remaining only.*');
+      lines.push('');
+      appendWorkSummaryVerticalMd(lines, exportIdleTasks, true);
+    }
+
+    lines.push('---');
+    lines.push('');
+    lines.push('*End of export*');
+    return lines.join('\n');
+  }
+
+  function renderSummaryExportHtmlCssFields(parts) {
+    return (
+      '<label class="summary-export-field-label">Full HTML document (inline styles)</label>' +
+      '<textarea class="summary-export-text summary-export-text-combined" spellcheck="false">' + escapeHtml(parts.document) + '</textarea>' +
+      '<h4 class="summary-export-separated-heading">HTML–CSS separated</h4>' +
+      '<p class="summary-export-separated-note muted">For Confluence Mosaic and similar renderers: paste HTML into the HTML macro and styles into a separate stylesheet.</p>' +
+      '<label class="summary-export-field-label">HTML only (body content)</label>' +
+      '<textarea class="summary-export-text summary-export-text-split" spellcheck="false">' + escapeHtml(parts.htmlOnly) + '</textarea>' +
+      '<label class="summary-export-field-label">CSS only</label>' +
+      '<textarea class="summary-export-text summary-export-text-split" spellcheck="false">' + escapeHtml(parts.cssOnly) + '</textarea>'
+    );
+  }
+
+  function wireSummaryExportHtmlTabs(container) {
+    if (!container) return;
+    var tabBar = container.querySelector('.summary-export-tab-bar');
+    if (!tabBar) return;
+    tabBar.addEventListener('click', function (ev) {
+      var tab = ev.target.closest('.summary-export-tab');
+      if (!tab || !tabBar.contains(tab)) return;
+      var id = tab.getAttribute('data-summary-tab');
+      if (!id) return;
+      container.querySelectorAll('.summary-export-tab').forEach(function (t) {
+        var on = t === tab;
+        t.classList.toggle('is-active', on);
+        t.setAttribute('aria-selected', on ? 'true' : 'false');
+      });
+      container.querySelectorAll('.summary-export-tab-panel').forEach(function (p) {
+        var show = p.getAttribute('data-summary-panel') === id;
+        p.classList.toggle('is-active', show);
+      });
+    });
   }
 
   function exportSummary() {
     if (!state.summaryGenerated || !state.lastSummaryMeta) return;
     var format = summaryExportFormat ? summaryExportFormat.value : 'htmlcss';
-    if (format === 'markdown') {
-      summaryOutput.innerHTML = '<p class="muted">Markdown export will be added next. Please use HTML/CSS for now.</p>';
+    if (format === 'confluence-markdown' || format === 'markdown') {
+      var mdDoc = buildSummaryExportConfluenceMarkdown(state.lastSummaryMeta);
+      summaryOutput.innerHTML = '<textarea class="summary-export-text" spellcheck="false">' + escapeHtml(mdDoc) + '</textarea>';
       return;
     }
-    var doc = buildSummaryExportHtml(state.lastSummaryMeta);
-    summaryOutput.innerHTML = '<textarea class="summary-export-text" spellcheck="false">' + escapeHtml(doc) + '</textarea>';
+    var partsFull = buildSummaryExportHtmlParts(state.lastSummaryMeta);
+    var partsBrief = buildSummaryExportHtmlParts(state.lastSummaryMeta, { brief: true });
+    var wrap = document.createElement('div');
+    wrap.className = 'summary-export-htmlcss summary-export-htmlcss-tabbed';
+    wrap.innerHTML =
+      '<div class="summary-export-tab-bar" role="tablist" aria-label="Summary export format">' +
+      '<button type="button" class="summary-export-tab is-active" role="tab" aria-selected="true" data-summary-tab="full">Full Summary</button>' +
+      '<button type="button" class="summary-export-tab" role="tab" aria-selected="false" data-summary-tab="brief">Brief Summary</button>' +
+      '</div>' +
+      '<div class="summary-export-tab-panel is-active" role="tabpanel" data-summary-panel="full">' + renderSummaryExportHtmlCssFields(partsFull) + '</div>' +
+      '<div class="summary-export-tab-panel" role="tabpanel" data-summary-panel="brief">' + renderSummaryExportHtmlCssFields(partsBrief) + '</div>';
+    summaryOutput.innerHTML = '';
+    summaryOutput.appendChild(wrap);
+    wireSummaryExportHtmlTabs(wrap);
   }
 
   function generateSummary() {

@@ -18,7 +18,7 @@ FlowAssist is built for **individual contributors and small teams** who track re
 | **Track effort honestly** | **Progress updates** with hours, **planned vs. actual** effort history, **day-offs** in the calendar math. |
 | **Break work down** | **Sub-tasks** with their own status, progress, and optional roll-up into parent totals. |
 | **Surface risk** | **Concerns** on tasks and sub-tasks, with an “addressed” trail. |
-| **Share or archive** | **Export summaries** as **HTML/CSS** or **Markdown** for email, wikis, or tickets. |
+| **Share or archive** | **Export summaries** as **HTML/CSS** or **Confluence Markdown** for email, wikis, or tickets. |
 
 ---
 
@@ -57,7 +57,7 @@ FlowAssist is built for **individual contributors and small teams** who track re
 ### Summary & export
 
 - Pick a **date range**, then **Generate Summary** for planned vs. actual effort, bandwidth utilization (using working hours and day-offs), and task/sub-task tables with sensible date filtering (e.g. hiding items finished before the range when appropriate).
-- **Export** the generated summary as **HTML/CSS** or **Markdown**; export respects exclude flags where implemented.
+- **Export** the generated summary as **HTML/CSS** or **Confluence Markdown** (vertical layout with an **Effort/ETA** block: two markdown tables stacked under one heading; Confluence Cloud markdown has no text color — **bold** marks changed steps and over-plan remaining; use the editor’s **Text color** after paste if you want color). Tasks with no progress in range omit the **Progress** section; export respects exclude flags where implemented.
 
 ### Settings
 
