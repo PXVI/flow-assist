@@ -43,7 +43,11 @@
       workPresetMinutes: 25,
       soundEnabled: false,
       tipIndex: 0
-    }
+    },
+    /** 0=Sun … 6=Sat — days counted as work for capacity and productivity targets */
+    workDays: [1, 2, 3, 4, 5],
+    /** 0=Sun … 6=Sat — first column of calendar month / week strip / summary default week */
+    weekStartDay: 1
   };
 
   var TASK_DIFFICULTY_LEVELS = ['Very Easy', 'Easy', 'Moderate', 'Hard', 'Very Hard'];
@@ -1223,12 +1227,56 @@
     return date;
   }
 
-  /** Sunday = 0, Saturday = 6 */
-  function isWeekendYMD(ymd) {
+  var DEFAULT_WORK_DAYS = [1, 2, 3, 4, 5];
+
+  function getNormalizedWorkDays(settings) {
+    var raw = settings && settings.workDays;
+    if (!Array.isArray(raw) || raw.length === 0) return DEFAULT_WORK_DAYS.slice();
+    var seen = {};
+    for (var wi = 0; wi < raw.length; wi++) {
+      var n = parseInt(raw[wi], 10);
+      if (!isNaN(n) && n >= 0 && n <= 6) seen[n] = true;
+    }
+    var out = Object.keys(seen).map(function (k) { return parseInt(k, 10); });
+    out.sort(function (a, b) { return a - b; });
+    return out.length ? out : DEFAULT_WORK_DAYS.slice();
+  }
+
+  function getNormalizedWeekStartDay(settings) {
+    var n = parseInt(settings && settings.weekStartDay, 10);
+    if (isNaN(n) || n < 0 || n > 6) return 1;
+    return n;
+  }
+
+  function isConfiguredWorkDayYMD(ymd, settings) {
     var date = parseYMD(ymd);
     if (!date) return false;
-    var d = date.getDay();
-    return d === 0 || d === 6;
+    var wd = getNormalizedWorkDays(settings || {});
+    return wd.indexOf(date.getDay()) !== -1;
+  }
+
+  function computeDayCapacityHours(ymd, settings) {
+    if (!isConfiguredWorkDayYMD(ymd, settings)) return 0;
+    var hrsPerDay = parseFloat(settings.workingHoursPerDay);
+    if (isNaN(hrsPerDay) || hrsPerDay <= 0) hrsPerDay = 8;
+    var off = null;
+    (settings.dayOffs || []).forEach(function (o) {
+      if (o && o.date === ymd) off = o;
+    });
+    if (off && (off.type === 'full' || off.type === 'Full')) return 0;
+    if (off && (off.type === 'partial' || off.type === 'Partial')) {
+      var hOff = parseFloat(off.hoursOff);
+      if (isNaN(hOff)) hOff = 0;
+      hOff = Math.min(Math.max(0, hOff), hrsPerDay);
+      return Math.max(0, hrsPerDay - hOff);
+    }
+    return hrsPerDay;
+  }
+
+  /** True when the date is not a configured work day (tinting / non-work); pass settings from caller when available. */
+  function isWeekendYMD(ymd, settings) {
+    if (!settings) settings = getSettings();
+    return !isConfiguredWorkDayYMD(ymd, settings);
   }
 
   /** Day off + weekend column tints for Gantt (full day off = green, partial = orange, weekend = red). */
@@ -1258,7 +1306,7 @@
         color = 'rgba(46, 160, 67, 0.22)';
       } else if (off && (off.type === 'partial' || off.type === 'Partial')) {
         color = 'rgba(210, 153, 34, 0.24)';
-      } else if (isWeekendYMD(ymd)) {
+      } else if (isWeekendYMD(ymd, settings)) {
         color = 'rgba(248, 81, 73, 0.16)';
       }
       parts.push(color + ' ' + start, color + ' ' + end);
@@ -1341,22 +1389,21 @@
     var end = new Date(d1.getTime());
     while (d <= end) {
       var ymd = toYMD(d);
-      var dow = d.getDay();
-      if (dow !== 0 && dow !== 6) {
-        var off = byDate[ymd];
-        var dowShort = d.toLocaleDateString('en-US', { weekday: 'short' });
-        if (off && (off.type === 'full' || off.type === 'Full')) {
-          noteReason(off.reason || 'Other', ymd + ' ' + dowShort + ' (full day)');
-        } else if (off && (off.type === 'partial' || off.type === 'Partial')) {
-          var hOff = parseFloat(off.hoursOff);
-          if (isNaN(hOff)) hOff = 0;
-          hOff = Math.min(Math.max(0, hOff), hrsPerDay);
-          cap += Math.max(0, hrsPerDay - hOff);
-          noteReason(off.reason || 'Other', ymd + ' ' + dowShort + ' (partial, ' + hOff + 'h off)');
-        } else {
-          cap += hrsPerDay;
-        }
+      if (!isConfiguredWorkDayYMD(ymd, settings)) {
+        d.setDate(d.getDate() + 1);
+        continue;
       }
+      var off = byDate[ymd];
+      var dowShort = d.toLocaleDateString('en-US', { weekday: 'short' });
+      if (off && (off.type === 'full' || off.type === 'Full')) {
+        noteReason(off.reason || 'Other', ymd + ' ' + dowShort + ' (full day)');
+      } else if (off && (off.type === 'partial' || off.type === 'Partial')) {
+        var hOff = parseFloat(off.hoursOff);
+        if (isNaN(hOff)) hOff = 0;
+        hOff = Math.min(Math.max(0, hOff), hrsPerDay);
+        noteReason(off.reason || 'Other', ymd + ' ' + dowShort + ' (partial, ' + hOff + 'h off)');
+      }
+      cap += computeDayCapacityHours(ymd, settings);
       d.setDate(d.getDate() + 1);
     }
     var spent = sumProgressHoursInRangeForTasksWithSummaryFilter(getTasks().map(normalizeTask), from, to);
@@ -1395,13 +1442,17 @@
     return date.toLocaleDateString('en-US', { weekday: 'short' });
   }
 
-  function getMonday(ymd) {
+  function getWeekStartYMD(ymd, weekStartDay) {
     var date = parseYMD(ymd);
     if (!date) return ymd;
     var day = date.getDay();
-    var diff = day === 0 ? -6 : 1 - day;
-    date.setDate(date.getDate() + diff);
+    var diff = (day - weekStartDay + 7) % 7;
+    date.setDate(date.getDate() - diff);
     return toYMD(date);
+  }
+
+  function getMonday(ymd) {
+    return getWeekStartYMD(ymd, 1);
   }
 
   function addDays(ymd, n) {
@@ -1412,10 +1463,30 @@
   }
 
   function getWeekDates(ymd) {
-    var monday = getMonday(ymd);
+    var weekStart = getWeekStartYMD(ymd, getNormalizedWeekStartDay(getSettings()));
     var out = [];
-    for (var i = 0; i < 7; i++) out.push(addDays(monday, i));
+    for (var i = 0; i < 7; i++) out.push(addDays(weekStart, i));
     return out;
+  }
+
+  function computeRangeCapacityHours(from, to, settings) {
+    var d0 = parseYMD(from);
+    var d1 = parseYMD(to);
+    if (!d0 || !d1) return 0;
+    var total = 0;
+    var d = new Date(d0.getTime());
+    var end = new Date(d1.getTime());
+    while (d <= end) {
+      total += computeDayCapacityHours(toYMD(d), settings);
+      d.setDate(d.getDate() + 1);
+    }
+    return total;
+  }
+
+  function getWorkWeekRangeForDate(todayYmd, settings) {
+    var ws = getNormalizedWeekStartDay(settings);
+    var from = getWeekStartYMD(todayYmd, ws);
+    return { from: from, to: addDays(from, 6) };
   }
 
   function getMonthDates(ymd) {
@@ -1521,6 +1592,21 @@
     var wh = parseFloat(state.data.settings.workingHoursPerDay);
     if (isNaN(wh) || wh <= 0) state.data.settings.workingHoursPerDay = 8;
     if (!Array.isArray(state.data.settings.dayOffs)) state.data.settings.dayOffs = [];
+    var DEFAULT_WORK_DAYS = [1, 2, 3, 4, 5];
+    if (!Array.isArray(state.data.settings.workDays) || state.data.settings.workDays.length === 0) {
+      state.data.settings.workDays = DEFAULT_WORK_DAYS.slice();
+    } else {
+      var seenWD = {};
+      state.data.settings.workDays.forEach(function (x) {
+        var n = parseInt(x, 10);
+        if (!isNaN(n) && n >= 0 && n <= 6) seenWD[n] = true;
+      });
+      var wdOut = Object.keys(seenWD).map(function (k) { return parseInt(k, 10); }).sort(function (a, b) { return a - b; });
+      state.data.settings.workDays = wdOut.length ? wdOut : DEFAULT_WORK_DAYS.slice();
+    }
+    var wsd = parseInt(state.data.settings.weekStartDay, 10);
+    if (isNaN(wsd) || wsd < 0 || wsd > 6) state.data.settings.weekStartDay = 1;
+    else state.data.settings.weekStartDay = wsd;
     if (!Array.isArray(state.data.settings.projects)) state.data.settings.projects = [];
     else {
       state.data.settings.projects = state.data.settings.projects.map(function (p) {
@@ -6279,6 +6365,7 @@
     if (viewCalPanel) viewCalPanel.classList.toggle('calendar-basic-fill', chartStyle === 'basic');
 
     var tasks = getTasks();
+    var calendarSettings = getSettings();
     var focus = state.calendarFocusDate || new Date().toISOString().slice(0, 10);
     var periodLabelEl = document.getElementById('calendar-period-label');
     var gotoInput = document.getElementById('calendar-goto-date');
@@ -6301,7 +6388,7 @@
       var headerHtml = dates.map(function (ymd, i) {
         var fmt = formatCalendarDate(ymd);
         var todayClass = ymd === todayYMD ? ' gantt-date-cell-today' : '';
-        var weekendClass = isWeekendYMD(ymd) ? ' gantt-date-cell-weekend' : '';
+        var weekendClass = isWeekendYMD(ymd, calendarSettings) ? ' gantt-date-cell-weekend' : '';
         var off = getDayOffForDate(ymd);
         var offClass = '';
         if (off && (off.type === 'full' || off.type === 'Full')) offClass = ' gantt-date-cell-off-full';
@@ -6403,7 +6490,7 @@
         }).join('') + '</ul>'
         : '<p class="calendar-day-empty">No tasks</p>';
       var todayClass = ymd === todayYMD ? ' calendar-day-today' : '';
-      var weekendClass = isWeekendYMD(ymd) ? ' calendar-day-weekend' : '';
+      var weekendClass = isWeekendYMD(ymd, calendarSettings) ? ' calendar-day-weekend' : '';
       var off = getDayOffForDate(ymd);
       var offClass = '';
       var offBadge = '';
@@ -6438,7 +6525,8 @@
     } else {
       var monthDates = getMonthDates(focus);
       var firstDay = parseYMD(monthDates[0]);
-      var startPad = firstDay ? (firstDay.getDay() + 6) % 7 : 0;
+      var wsdCal = getNormalizedWeekStartDay(calendarSettings);
+      var startPad = firstDay ? (firstDay.getDay() - wsdCal + 7) % 7 : 0;
       if (periodLabelEl) periodLabelEl.textContent = getMonthLabel(focus);
       html = '<h3 class="calendar-title">' + escapeHtml(getMonthLabel(focus)) + '</h3>' +
         '<div class="calendar-days calendar-view-month">';
@@ -8673,9 +8761,8 @@
     var d = new Date(start);
     while (d < end) {
       d.setDate(d.getDate() + 1);
-      var dow = d.getDay();
-      if (dow === 0 || dow === 6) continue;
-      var ymd = d.toISOString().slice(0, 10);
+      var ymd = toYMD(d);
+      if (!isConfiguredWorkDayYMD(ymd, settings)) continue;
       if (offSet[ymd]) continue;
       count++;
     }
@@ -8991,6 +9078,58 @@
     } catch (e) { /* ignore */ }
   }
 
+  function formatTopBarHours(num) {
+    if (num == null || isNaN(num)) num = 0;
+    var v = Math.round(Number(num) * 10) / 10;
+    var s = v.toFixed(1).replace(/\.0$/, '');
+    return s + ' hrs';
+  }
+
+  function topBarProductivitySpentStatus(spent, cap) {
+    var s = Number(spent) || 0;
+    var c = Number(cap) || 0;
+    if (c <= 0) return 'neutral';
+    if (s >= c) return 'met';
+    return 'below';
+  }
+
+  function setTopBarProductivityCopy(el, spent, cap) {
+    if (!el) return;
+    var status = topBarProductivitySpentStatus(spent, cap);
+    el.innerHTML =
+      '<span class="top-bar-metric-spent top-bar-metric-spent--' + status + '">' + escapeHtml(formatTopBarHours(spent)) + '</span>' +
+      '<span class="top-bar-metric-sep"> / </span>' +
+      '<span class="top-bar-metric-goal">' + escapeHtml(formatTopBarHours(cap)) + '</span>';
+  }
+
+  function updateTopBarMetrics() {
+    var settings = getSettings();
+    var today = toYMD(new Date());
+    var dateVal = document.getElementById('top-bar-date-value');
+    var todayPv = document.getElementById('top-bar-today-productivity-value');
+    var weekPv = document.getElementById('top-bar-week-productivity-value');
+    if (!dateVal || !todayPv || !weekPv) return;
+
+    var dt = parseYMD(today);
+    if (dt) {
+      var shortDay = dt.toLocaleDateString('en-US', { weekday: 'short' });
+      var rest = dt.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+      dateVal.textContent = shortDay + ', ' + rest;
+    } else {
+      dateVal.textContent = today;
+    }
+
+    var tasks = getTasks().map(normalizeTask);
+    var spentToday = sumProgressHoursInRangeForTasksWithSummaryFilter(tasks, today, today);
+    var capToday = computeDayCapacityHours(today, settings);
+    setTopBarProductivityCopy(todayPv, spentToday, capToday);
+
+    var wr = getWorkWeekRangeForDate(today, settings);
+    var spentWeek = sumProgressHoursInRangeForTasksWithSummaryFilter(tasks, wr.from, today);
+    var capWeek = computeRangeCapacityHours(wr.from, wr.to, settings);
+    setTopBarProductivityCopy(weekPv, spentWeek, capWeek);
+  }
+
   function updateRelaxTopBarPills() {
     var now = Date.now();
     var wrap = document.getElementById('top-bar-relax-timers');
@@ -9232,6 +9371,7 @@
     if (state.progressHistoryOpen) refreshProgressHistoryModal();
     refreshNotifications();
     startRelaxTickIfNeeded();
+    updateTopBarMetrics();
     updateRelaxTopBarPills();
   }
 
@@ -9378,6 +9518,13 @@
     }
     var themeSelect = document.getElementById('setting-theme');
     if (themeSelect) themeSelect.value = getSettings().theme || 'classic';
+    var gs = getSettings();
+    for (var di = 0; di <= 6; di++) {
+      var cb = $('setting-work-day-' + di);
+      if (cb) cb.checked = getNormalizedWorkDays(gs).indexOf(di) !== -1;
+    }
+    var wss = $('setting-week-start');
+    if (wss) wss.value = String(getNormalizedWeekStartDay(gs));
     var modal = $('settings-modal');
     if (modal) {
       modal.classList.add('open');
@@ -9418,12 +9565,14 @@
 
   function setSummaryDefaultDates() {
     if (!summaryFrom || !summaryTo) return;
-    var today = new Date().toISOString().slice(0, 10);
-    var thisWeekMonday = getMonday(today);
-    var prevWeekMonday = addDays(thisWeekMonday, -7);
-    var prevWeekSunday = addDays(prevWeekMonday, 6);
-    summaryFrom.value = prevWeekMonday;
-    summaryTo.value = prevWeekSunday;
+    var today = toYMD(new Date());
+    var settings = getSettings();
+    var ws = getNormalizedWeekStartDay(settings);
+    var thisWeekStart = getWeekStartYMD(today, ws);
+    var prevWeekStart = addDays(thisWeekStart, -7);
+    var prevWeekEnd = addDays(prevWeekStart, 6);
+    summaryFrom.value = prevWeekStart;
+    summaryTo.value = prevWeekEnd;
     if (window.__FLOWASSIST_DEBUG__) {
       var savedFrom = localStorage.getItem(DEBUG_SUMMARY_FROM_KEY);
       var savedTo = localStorage.getItem(DEBUG_SUMMARY_TO_KEY);
@@ -9864,6 +10013,16 @@
         var whIn = $('setting-working-hours');
         var wh = whIn ? parseFloat(whIn.value) : 8;
         if (isNaN(wh) || wh <= 0) wh = 8;
+        var weekStartEl = $('setting-week-start');
+        var weekStartVal = weekStartEl ? parseInt(weekStartEl.value, 10) : 1;
+        if (isNaN(weekStartVal) || weekStartVal < 0 || weekStartVal > 6) weekStartVal = 1;
+        var workDaysPick = [];
+        for (var dj = 0; dj <= 6; dj++) {
+          var cbx = $('setting-work-day-' + dj);
+          if (cbx && cbx.checked) workDaysPick.push(dj);
+        }
+        if (workDaysPick.length === 0) workDaysPick = [1, 2, 3, 4, 5];
+        workDaysPick.sort(function (a, b) { return a - b; });
         var themeIn = document.getElementById('setting-theme');
         var theme = themeIn ? themeIn.value : 'classic';
         var base = getSettings();
@@ -9872,6 +10031,8 @@
           categories: categories.length ? categories : getCategoryList(),
           projects: projects,
           workingHoursPerDay: wh,
+          workDays: workDaysPick,
+          weekStartDay: weekStartVal,
           dayOffs: Array.isArray(base.dayOffs) ? base.dayOffs : [],
           theme: theme
         }));
@@ -9948,6 +10109,15 @@
         applyNoteReminderRemoteAction(payload);
       });
     }
+
+    var topBarMetricsClockYmd = toYMD(new Date());
+    setInterval(function () {
+      var tn = toYMD(new Date());
+      if (tn !== topBarMetricsClockYmd) {
+        topBarMetricsClockYmd = tn;
+        updateTopBarMetrics();
+      }
+    }, 60000);
 
     load().then(function () {
       applyTheme(getSettings().theme);

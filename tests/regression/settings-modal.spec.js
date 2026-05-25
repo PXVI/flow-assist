@@ -25,6 +25,34 @@ test.describe('Settings modal', () => {
     }
   });
 
+  test('work days and week start persist after save and reload', async () => {
+    const mutPath = copyProfileForMutation(DEFAULT_E2E_PROFILE, 'settings-work-week');
+    const app = await launchFlowAssist({ profilePath: mutPath });
+    try {
+      const page = await getMainWindowPage(app);
+      await waitForProfileLoaded(page);
+
+      await page.locator('#settings-btn').click();
+      await page.locator('#setting-work-day-5').uncheck();
+      await page.locator('#setting-week-start').selectOption('0');
+      await page.locator('#settings-save-btn').click();
+      await expect(page.locator('#settings-modal')).toHaveAttribute('aria-hidden', 'true');
+
+      await page.reload();
+      await waitForProfileLoaded(page);
+
+      await page.locator('#settings-btn').click();
+      await expect(page.locator('#setting-work-day-5')).not.toBeChecked();
+      await expect(page.locator('#setting-week-start')).toHaveValue('0');
+
+      await page.locator('#setting-work-day-5').check();
+      await page.locator('#setting-week-start').selectOption('1');
+      await page.locator('#settings-save-btn').click();
+    } finally {
+      await app.close();
+    }
+  });
+
   test('theme Refined persists after save and reload', async () => {
     const mutPath = copyProfileForMutation(DEFAULT_E2E_PROFILE, 'settings-theme');
     const app = await launchFlowAssist({ profilePath: mutPath });

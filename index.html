@@ -62,6 +62,34 @@
               <input type="number" id="setting-working-hours" class="settings-input settings-input-number" min="0.5" max="24" step="0.5" value="8" title="Used for bandwidth and day-off calculations">
             </div>
 
+            <div class="settings-field" aria-labelledby="setting-work-days-legend">
+              <div id="setting-work-days-legend" class="settings-label">Default work days</div>
+              <p class="settings-hint">Used for productivity targets, bandwidth, summary capacity, and deadline working-day counts.</p>
+              <div class="settings-work-days-grid" role="group" aria-label="Default work days">
+                <label class="settings-work-day-item"><input type="checkbox" id="setting-work-day-0" value="0"> Sun</label>
+                <label class="settings-work-day-item"><input type="checkbox" id="setting-work-day-1" value="1"> Mon</label>
+                <label class="settings-work-day-item"><input type="checkbox" id="setting-work-day-2" value="2"> Tue</label>
+                <label class="settings-work-day-item"><input type="checkbox" id="setting-work-day-3" value="3"> Wed</label>
+                <label class="settings-work-day-item"><input type="checkbox" id="setting-work-day-4" value="4"> Thu</label>
+                <label class="settings-work-day-item"><input type="checkbox" id="setting-work-day-5" value="5"> Fri</label>
+                <label class="settings-work-day-item"><input type="checkbox" id="setting-work-day-6" value="6"> Sat</label>
+              </div>
+            </div>
+
+            <div class="settings-field">
+              <label for="setting-week-start" class="settings-label">Week starts on</label>
+              <p class="settings-hint">Used for calendar month padding, week strips, summary default range, and week productivity.</p>
+              <select id="setting-week-start" class="add-task-input">
+                <option value="0">Sunday</option>
+                <option value="1">Monday</option>
+                <option value="2">Tuesday</option>
+                <option value="3">Wednesday</option>
+                <option value="4">Thursday</option>
+                <option value="5">Friday</option>
+                <option value="6">Saturday</option>
+              </select>
+            </div>
+
             <div class="settings-field">
               <label for="setting-categories" class="settings-label">Category types</label>
               <p class="settings-hint">Comma-separated labels shown in task category pickers.</p>
@@ -190,7 +218,22 @@
           </div>
         </div>
       </div>
-      <div class="top-bar-center" id="top-bar-relax-timers" hidden>
+      <div class="top-bar-center">
+        <div class="top-bar-metrics" id="top-bar-metrics" aria-live="polite">
+          <span class="top-bar-metric-pill" id="top-bar-date-pill">
+            <span class="top-bar-metric-label">Date</span>
+            <span class="top-bar-metric-copy"><span class="top-bar-metric-value" id="top-bar-date-value">—</span></span>
+          </span>
+          <span class="top-bar-metric-pill top-bar-metric-pill--wide" id="top-bar-today-productivity-pill">
+            <span class="top-bar-metric-label">Today's Productivity</span>
+            <span class="top-bar-metric-copy" id="top-bar-today-productivity-value">—</span>
+          </span>
+          <span class="top-bar-metric-pill top-bar-metric-pill--wide" id="top-bar-week-productivity-pill">
+            <span class="top-bar-metric-label">Week's Productivity</span>
+            <span class="top-bar-metric-copy" id="top-bar-week-productivity-value">—</span>
+          </span>
+        </div>
+        <div class="top-bar-relax-timers" id="top-bar-relax-timers" hidden>
         <button type="button" class="top-bar-relax-pill top-bar-relax-pill--focus" id="top-bar-relax-focus-pill" hidden title="Go to Relax — Focus timer" aria-label="Focus timer running, open Relax tab">
           <span class="top-bar-relax-pill-icon" aria-hidden="true"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="1.75"/><path d="M12 8v5l3.5 2" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
           <span class="top-bar-relax-pill-copy"><span class="top-bar-relax-pill-label">Focus Time</span><span class="top-bar-relax-pill-sep">:</span><span class="top-bar-relax-pill-time" id="top-bar-relax-focus-time">0:00</span></span>
@@ -199,6 +242,7 @@
           <span class="top-bar-relax-pill-icon" aria-hidden="true"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="1.75"/><path d="M12 8v5l3.5 2" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
           <span class="top-bar-relax-pill-copy"><span class="top-bar-relax-pill-label">Break Time</span><span class="top-bar-relax-pill-sep">:</span><span class="top-bar-relax-pill-time" id="top-bar-relax-break-time">0:00</span></span>
         </button>
+        </div>
       </div>
       <div class="top-bar-end">
         <div class="notif-wrap" id="notif-wrap">
