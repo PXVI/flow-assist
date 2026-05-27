@@ -6035,8 +6035,16 @@
       "breakPresetMinutes": 5,
       "workPresetMinutes": 25,
       "soundEnabled": false,
-      "tipIndex": 3
-    }
+      "tipIndex": 4
+    },
+    "workDays": [
+      1,
+      2,
+      3,
+      4,
+      5
+    ],
+    "weekStartDay": 1
   },
   "notes": {
     "items": [

@@ -648,15 +648,49 @@
     return { statusAtStart: statusAtStart, statusAtEnd: statusAtEnd, transitions: transitions };
   }
 
+  function normalizeDateYMD(d) {
+    if (d == null || d === '') return '';
+    var s = String(d).trim();
+    if (s.length >= 10 && s[4] === '-' && s[7] === '-') return s.slice(0, 10);
+    return s;
+  }
+
+  function earliestDateYMD(dates) {
+    var best = '';
+    for (var i = 0; i < dates.length; i++) {
+      var norm = normalizeDateYMD(dates[i]);
+      if (!norm) continue;
+      if (!best || norm < best) best = norm;
+    }
+    return best;
+  }
+
+  /** Set the Open status-change row date to match assigned_date (summary eligibility). */
+  function syncOpenStatusChangeDateFromAssigned(taskLike, assignedYMD) {
+    var ymd = normalizeDateYMD(assignedYMD);
+    if (!ymd || !Array.isArray(taskLike.status_changes)) return;
+    for (var i = 0; i < taskLike.status_changes.length; i++) {
+      if (normalizeStatusForHistory(taskLike.status_changes[i].status) === 'Open') {
+        taskLike.status_changes[i].date = ymd;
+        break;
+      }
+    }
+    if (taskLike.status_changes.length) enforceStatusChangeDateOrder(taskLike.status_changes);
+  }
+
   /** Date when the task/subtask first entered 'Open' (i.e. was created/assigned). */
   function taskOpenDate(taskLike) {
+    var openFromHistory = '';
     var changes = sortedStatusChanges(taskLike.status_changes || []);
     for (var i = 0; i < changes.length; i++) {
       if (normalizeStatusForHistory(changes[i].status) === 'Open') {
-        return changes[i].date || '';
+        openFromHistory = normalizeDateYMD(changes[i].date);
+        break;
       }
     }
-    return taskLike.assigned_date || taskLike.created_at && String(taskLike.created_at).slice(0, 10) || '';
+    var assigned = normalizeDateYMD(taskLike.assigned_date);
+    var created = taskLike.created_at ? normalizeDateYMD(String(taskLike.created_at)) : '';
+    return earliestDateYMD([openFromHistory, assigned, created]);
   }
 
   /** Was task/sub-task fully Done or Dropped before a date? (all status changes resolved before rangeFrom) */
@@ -2876,6 +2910,10 @@
       else if (k === 'difficulty') task.difficulty = normalizeTaskDifficulty(updates.difficulty);
       else task[k] = updates[k];
     });
+    if (updates.assigned_date !== undefined) {
+      syncOpenStatusChangeDateFromAssigned(task, updates.assigned_date);
+      syncTaskFromStatusChanges(task);
+    }
     return save().then(function () { render(); });
   }
 
@@ -3051,7 +3089,12 @@
     }
     if (updates.description !== undefined) s.description = updates.description;
     if (updates.priority !== undefined) s.priority = Math.min(10, Math.max(1, updates.priority));
-    if (updates.assigned_date !== undefined) s.assigned_date = updates.assigned_date;
+    if (updates.assigned_date !== undefined) {
+      s.assigned_date = updates.assigned_date;
+      migrateSubtaskStatusChangesIfNeeded(s);
+      syncOpenStatusChangeDateFromAssigned(s, updates.assigned_date);
+      syncSubtaskFromStatusChanges(s);
+    }
     if (updates.eta !== undefined) {
       s.eta = (updates.eta != null && String(updates.eta).trim()) ? String(updates.eta).trim().slice(0, 10) : '';
     }

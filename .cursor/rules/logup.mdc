@@ -1,0 +1,24 @@
+---
+description: Mandatory progress log update (logup) before finishing implementation work
+alwaysApply: true
+---
+
+# Progress log (logup)
+
+Before you mark an **implementation task** complete in this repo, update [`docs/PROGRESS_LOG.md`](docs/PROGRESS_LOG.md) per [`.cursor/skills/logup/SKILL.md`](../skills/logup/SKILL.md).
+
+## Required
+
+- After feature work, bug fixes, UX changes, settings behavior, or user-visible test additions
+- Append bullets only under `## Unreleased` (never below `<!-- progress-log-published -->`)
+- Describe **user-facing** changes, not file or symbol names
+
+## Skip only when
+
+- User explicitly says **no log** for this task
+- Read-only Q&A with **no** repository edits
+- Request is only **logsum** or commit-message generation (no new implementation)
+
+## Closing
+
+Mention in one line that `docs/PROGRESS_LOG.md` was updated when you appended entries.

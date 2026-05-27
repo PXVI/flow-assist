@@ -19,6 +19,7 @@ FlowAssist is built for **individual contributors and small teams** who track re
 - [Relax](#relax)
 - [Profiles and storage](#profiles-and-storage)
 - [Settings](#settings)
+- [Progress log (logup / logsum)](#progress-log-logup--logsum)
 - [Application shell](#application-shell)
 - [Stack](#stack)
 - [Makefile (all platforms)](#makefile-all-platforms)
@@ -189,9 +190,24 @@ In the modal, the reminder area stays **compact** until you have at least one sc
 ## Settings
 
 - **Working hours per day** (drives bandwidth, summary, and partial day-off behavior).
+- **Default work days** and **week starts on** (calendar padding, week strips, summary default range, top-bar week productivity, and deadline working-day counts).
 - **Category types** and **project names** (comma-separated lists used across the UI).
 - **Priority bar colors** for priorities 1–10.
 - **Theme** preference (stored locally in the browser profile for the Electron window).
+
+---
+
+## Progress log (logup / logsum)
+
+This repo keeps a **feature-level changelog** at [`docs/PROGRESS_LOG.md`](docs/PROGRESS_LOG.md) (committed and pushed with the code). Entries describe user-visible changes—not file lists—and feed git commit messages.
+
+| Step | What to do |
+|------|------------|
+| **During work** | **logup** runs automatically (project rule [`.cursor/rules/logup.mdc`](.cursor/rules/logup.mdc) + skill [`.cursor/skills/logup/SKILL.md`](.cursor/skills/logup/SKILL.md)). The agent appends to `## Unreleased` before finishing implementation. Say **no log** to skip for a task. |
+| **Before commit** | Say **logsum** to diff Unreleased vs `HEAD` and get a commit subject + body for only **new** bullets. |
+| **After push** | Say **logsum finalize** to move Unreleased into dated history below the published marker and clear the draft section. |
+
+Skills: [logup](.cursor/skills/logup/SKILL.md) (always on in this project), [logsum](.cursor/skills/logsum/SKILL.md) (on demand).
 
 ---
 
