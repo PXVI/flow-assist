@@ -47,7 +47,9 @@
     /** 0=Sun … 6=Sat — days counted as work for capacity and productivity targets */
     workDays: [1, 2, 3, 4, 5],
     /** 0=Sun … 6=Sat — first column of calendar month / week strip / summary default week */
-    weekStartDay: 1
+    weekStartDay: 1,
+    /** HTML/CSS summary export: hide Concerns heading and "None" when a row has no in-range concerns. */
+    omitNoConcernsInSummary: true
   };
 
   var TASK_DIFFICULTY_LEVELS = ['Very Easy', 'Easy', 'Moderate', 'Hard', 'Very Hard'];
@@ -1660,6 +1662,11 @@
     if (!state.data.notes || typeof state.data.notes !== 'object') state.data.notes = { items: [] };
     if (!Array.isArray(state.data.notes.items)) state.data.notes.items = [];
     state.data.notes.items = state.data.notes.items.map(normalizeNoteItem);
+    if (state.data.settings.omitNoConcernsInSummary === false) {
+      state.data.settings.omitNoConcernsInSummary = false;
+    } else {
+      state.data.settings.omitNoConcernsInSummary = true;
+    }
     mergeRelaxSettingsInto(state.data.settings);
   }
 
@@ -6614,6 +6621,7 @@
     var exportActiveTasks = tasksForExportWorkTable(activeTasks, from, to);
     var exportIdleTasks = tasksForExportWorkTable(idleTasks, from, to);
     var exportSettings = getSettings();
+    var omitNoConcernsInSummary = exportSettings.omitNoConcernsInSummary !== false;
     var exportHpd = parseFloat(exportSettings.workingHoursPerDay);
     if (isNaN(exportHpd) || exportHpd <= 0) exportHpd = 8;
 
@@ -6729,6 +6737,9 @@
       if (!desc || !String(desc).trim()) return '—';
       return formatRichDescription(String(desc).trim());
     }
+    function hasConcernsInExportRange(concerns) {
+      return filterConcernsForRange(concerns, from, to).length > 0;
+    }
     function exportProgressConcernsHtml(concerns) {
       var filtered = filterConcernsForRange(concerns, from, to);
       var out = [];
@@ -6737,21 +6748,28 @@
         var cls = addressedInRange ? 'concern-addressed' : 'concern-open';
         out.push('<div class="' + cls + '">' + formatRichDescription(c.description || '') + (addressedInRange && c.addressed_comment ? ' (' + formatRichDescription(c.addressed_comment) + ')' : '') + '</div>');
       });
-      return out.length ? out.join('') : '<span class="muted">None</span>';
+      if (out.length) return out.join('');
+      if (omitNoConcernsInSummary) return '';
+      return '<span class="muted">None</span>';
     }
     /** `isIdleNoProgressTable`: Tasks with No Progress export — no Progress block; concerns-only with "Concerns: None" when empty. */
     function progressCellHtml(updates, concerns, isIdleNoProgressTable) {
       concerns = concerns || [];
+      var hasConcerns = hasConcernsInExportRange(concerns);
       if (isIdleNoProgressTable) {
-        if (concerns.length) {
+        if (hasConcerns) {
           return '<div class="export-progress-wrap">' +
             '<div class="export-p-label">Concerns:</div><div class="export-c-body">' + exportProgressConcernsHtml(concerns) + '</div></div>';
         }
+        if (omitNoConcernsInSummary) return '';
         return '<div class="export-progress-wrap"><div class="export-c-body"><span class="muted"><strong>Concerns</strong>: None</span></div></div>';
       }
-      return '<div class="export-progress-wrap">' +
-        '<div class="export-p-label">Progress:</div><div class="export-p-body">' + progressSummaryHtml(updates) + '</div>' +
-        '<div class="export-p-label export-p-label-gap">Concerns:</div><div class="export-c-body">' + exportProgressConcernsHtml(concerns) + '</div></div>';
+      var html = '<div class="export-progress-wrap">' +
+        '<div class="export-p-label">Progress:</div><div class="export-p-body">' + progressSummaryHtml(updates) + '</div>';
+      if (hasConcerns || !omitNoConcernsInSummary) {
+        html += '<div class="export-p-label export-p-label-gap">Concerns:</div><div class="export-c-body">' + exportProgressConcernsHtml(concerns) + '</div>';
+      }
+      return html + '</div>';
     }
     function formatExportDays(d) {
       if (d == null || isNaN(d) || d < 0.001) return '0';
@@ -9568,6 +9586,8 @@
     }
     var wss = $('setting-week-start');
     if (wss) wss.value = String(getNormalizedWeekStartDay(gs));
+    var omitConcernsCb = $('setting-omit-no-concerns-summary');
+    if (omitConcernsCb) omitConcernsCb.checked = gs.omitNoConcernsInSummary !== false;
     var modal = $('settings-modal');
     if (modal) {
       modal.classList.add('open');
@@ -10068,6 +10088,8 @@
         workDaysPick.sort(function (a, b) { return a - b; });
         var themeIn = document.getElementById('setting-theme');
         var theme = themeIn ? themeIn.value : 'classic';
+        var omitConcernsIn = $('setting-omit-no-concerns-summary');
+        var omitNoConcernsInSummary = omitConcernsIn ? omitConcernsIn.checked : true;
         var base = getSettings();
         saveSettings(Object.assign({}, base, {
           priorityColors: colors,
@@ -10077,7 +10099,8 @@
           workDays: workDaysPick,
           weekStartDay: weekStartVal,
           dayOffs: Array.isArray(base.dayOffs) ? base.dayOffs : [],
-          theme: theme
+          theme: theme,
+          omitNoConcernsInSummary: omitNoConcernsInSummary
         }));
         closeSettingsModal();
         applyTheme(theme);

@@ -53,6 +53,33 @@ test.describe('Settings modal', () => {
     }
   });
 
+  test('omit no concerns in summary is checked by default and persists after save', async () => {
+    const mutPath = copyProfileForMutation(DEFAULT_E2E_PROFILE, 'settings-omit-concerns');
+    const app = await launchFlowAssist({ profilePath: mutPath });
+    try {
+      const page = await getMainWindowPage(app);
+      await waitForProfileLoaded(page);
+
+      await page.locator('#settings-btn').click();
+      const cb = page.locator('#setting-omit-no-concerns-summary');
+      await expect(cb).toBeChecked();
+      await cb.uncheck();
+      await page.locator('#settings-save-btn').click();
+      await expect(page.locator('#settings-modal')).toHaveAttribute('aria-hidden', 'true');
+
+      await page.reload();
+      await waitForProfileLoaded(page);
+
+      await page.locator('#settings-btn').click();
+      await expect(page.locator('#setting-omit-no-concerns-summary')).not.toBeChecked();
+
+      await page.locator('#setting-omit-no-concerns-summary').check();
+      await page.locator('#settings-save-btn').click();
+    } finally {
+      await app.close();
+    }
+  });
+
   test('theme Refined persists after save and reload', async () => {
     const mutPath = copyProfileForMutation(DEFAULT_E2E_PROFILE, 'settings-theme');
     const app = await launchFlowAssist({ profilePath: mutPath });

@@ -1,7 +1,10 @@
 'use strict';
 
+const path = require('path');
 const { test, expect } = require('@playwright/test');
 const { launchFlowAssist, getMainWindowPage, DEFAULT_E2E_PROFILE } = require('../helpers/electron-app');
+
+const ALT_EMPTY_PROFILE = path.join(__dirname, '..', 'fixtures', 'alt-empty.fa.json');
 const { waitForProfileLoaded, navigateToListView } = require('../helpers/wait-for-app');
 const { copyProfileForMutation } = require('../helpers/profile-copy');
 
@@ -115,6 +118,83 @@ test.describe('Summary view', () => {
       const output = page.locator('#summary-output');
       await expect(output).toContainText(taskTitle, { timeout: 30_000 });
       await expect(output.getByText('Cumulative Summary', { exact: false })).toBeVisible();
+    } finally {
+      await app.close();
+    }
+  });
+
+  test('HTML/CSS export omits empty concerns when setting enabled', async () => {
+    const mutPath = copyProfileForMutation(ALT_EMPTY_PROFILE, 'summary-omit-concerns-export');
+    const app = await launchFlowAssist({ profilePath: mutPath });
+    const { from, to, mid } = prevWeekRangeYMD();
+    const taskTitle = 'E2E Summary omit empty ' + Date.now();
+    try {
+      const page = await getMainWindowPage(app);
+      await waitForProfileLoaded(page);
+      await navigateToListView(page);
+
+      await page.locator('#add-new-task-btn').click();
+      await page.locator('#task-title').fill(taskTitle);
+      await page.locator('#add-task-btn').click();
+      await expect(page.locator('#task-list').getByText(taskTitle)).toBeVisible({ timeout: 15_000 });
+
+      await page.evaluate(
+        async ({ title, assignedYMD, progressYMD }) => {
+          const res = await window.taskAPI.loadTasks();
+          const data = res.data;
+          const t = (data.tasks || []).find(function (x) { return x.title === title; });
+          if (!t) throw new Error('task not found: ' + title);
+          t.assigned_date = assignedYMD;
+          t.progress_updates = [{
+            id: 'e2e-prog-' + Date.now(),
+            text: 'Progress without concerns',
+            date_added: progressYMD,
+            effort_consumed_hours: 1,
+            categories: []
+          }];
+          await window.taskAPI.saveTasks(data);
+        },
+        { title: taskTitle, assignedYMD: mid, progressYMD: mid }
+      );
+
+      await page.reload();
+      await waitForProfileLoaded(page);
+
+      await page.locator('.nav-btn[data-view="summary"]').click();
+      await page.locator('#summary-from').fill(from);
+      await page.locator('#summary-to').fill(to);
+      await page.locator('#generate-summary-btn').click();
+      await expect(page.locator('#summary-output')).toContainText(taskTitle, { timeout: 30_000 });
+
+      await page.locator('#export-summary-btn').click();
+      const htmlBody = page.locator('.summary-export-tab-panel.is-active .summary-export-text-split[data-copy-id="html"]');
+      await expect(htmlBody).toBeVisible({ timeout: 15_000 });
+      const htmlWithOmit = await htmlBody.inputValue();
+      const rowWithOmit = htmlWithOmit.match(
+        new RegExp(
+          '<tr[^>]*>[\\s\\S]*?' + taskTitle.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '[\\s\\S]*?</tr>'
+        )
+      );
+      expect(rowWithOmit).toBeTruthy();
+      expect(rowWithOmit[0]).not.toMatch(/Concerns:/);
+
+      await page.locator('#settings-btn').click();
+      await page.locator('#setting-omit-no-concerns-summary').uncheck();
+      await page.locator('#settings-save-btn').click();
+      await expect(page.locator('#settings-modal')).toHaveAttribute('aria-hidden', 'true');
+
+      await page.locator('#generate-summary-btn').click();
+      await page.locator('#export-summary-btn').click();
+      await expect(htmlBody).toBeVisible({ timeout: 15_000 });
+      const htmlWithoutOmit = await htmlBody.inputValue();
+      const rowWithoutOmit = htmlWithoutOmit.match(
+        new RegExp(
+          '<tr[^>]*>[\\s\\S]*?' + taskTitle.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '[\\s\\S]*?</tr>'
+        )
+      );
+      expect(rowWithoutOmit).toBeTruthy();
+      expect(rowWithoutOmit[0]).toMatch(/Concerns:/);
+      expect(rowWithoutOmit[0]).toMatch(/None/);
     } finally {
       await app.close();
     }

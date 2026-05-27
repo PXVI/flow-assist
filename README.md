@@ -145,7 +145,8 @@ The exported document is structured with horizontal rules and subheadings:
 - **Work Summary** title and date range, then the **Bandwidth** table (project/miscellaneous utilization and an **OOO** total in day-equivalents at your working-hours-per-day setting).
 - **OOO details** — under the bandwidth table, when any **day offs** fall in the selected range, a short list of each entry with **date** (DD-MM-YYYY), **weekday**, **reason** (PTO / Sick / Other), and **full day** vs **partial hours off**.
 - **Task Updates** — heading and rule above the main table for tasks **with progress in the range**.
-- **Tasks with No Progress** — separate section (heading + rule) for tasks with no in-range progress; the progress column shows **concerns only** (no “Progress: No progress made.” line). If there are no concerns, it shows **Concerns: None** (with **Concerns** in bold). If there are concerns, they are listed as in the full table.
+- **Tasks with No Progress** — separate section (heading + rule) for tasks with no in-range progress; the progress column shows **concerns only** (no “Progress: No progress made.” line). If there are no in-range concerns and **Omit no concerns in summary** is enabled in **Settings** (default), the Concerns heading and “None” are omitted; when that option is off, empty rows show **Concerns: None** (with **Concerns** in bold). If there are concerns, they are listed as in the full table.
+- **Settings → Summary export** — **Omit no concerns in summary** (on by default) applies to HTML/CSS export only; rows with in-range concerns are unchanged.
 
 Layout details: **Effort** and **ETA** column widths are sized from header labels and cell content; the **Effort** block in the no-progress table matches the **total width** of the Effort columns in the progress table so sections align visually.
 
