@@ -200,6 +200,78 @@ test.describe('Summary view', () => {
     }
   });
 
+  test('HTML/CSS export: progress without categories keeps number and note on same line', async () => {
+    const mutPath = copyProfileForMutation(ALT_EMPTY_PROFILE, 'summary-progress-inline-export');
+    const app = await launchFlowAssist({ profilePath: mutPath });
+    const { from, to, mid } = prevWeekRangeYMD();
+    const taskTitle = 'E2E Summary progress inline ' + Date.now();
+    const progressNote = 'Inline note without category tags';
+    try {
+      const page = await getMainWindowPage(app);
+      await waitForProfileLoaded(page);
+      await navigateToListView(page);
+
+      await page.locator('#add-new-task-btn').click();
+      await page.locator('#task-title').fill(taskTitle);
+      await page.locator('#add-task-btn').click();
+      await expect(page.locator('#task-list').getByText(taskTitle)).toBeVisible({ timeout: 15_000 });
+
+      await page.evaluate(
+        async ({ title, assignedYMD, progressYMD, note }) => {
+          const res = await window.taskAPI.loadTasks();
+          const data = res.data;
+          const t = (data.tasks || []).find(function (x) { return x.title === title; });
+          if (!t) throw new Error('task not found: ' + title);
+          t.assigned_date = assignedYMD;
+          t.progress_updates = [{
+            id: 'e2e-prog-' + Date.now(),
+            text: note,
+            date_added: progressYMD,
+            effort_consumed_hours: 2,
+            categories: []
+          }];
+          await window.taskAPI.saveTasks(data);
+        },
+        { title: taskTitle, assignedYMD: mid, progressYMD: mid, note: progressNote }
+      );
+
+      await page.reload();
+      await waitForProfileLoaded(page);
+
+      await page.locator('.nav-btn[data-view="summary"]').click();
+      await page.locator('#summary-from').fill(from);
+      await page.locator('#summary-to').fill(to);
+      await page.locator('#generate-summary-btn').click();
+      await expect(page.locator('#summary-output')).toContainText(taskTitle, { timeout: 30_000 });
+
+      await page.locator('#export-options-btn').click();
+      await page.locator('#export-opt-show-progress-hrs').uncheck();
+      await page.locator('#export-options-done-btn').click();
+
+      await page.locator('#export-summary-btn').click();
+      const htmlBody = page.locator('.summary-export-tab-panel.is-active .summary-export-text-split[data-copy-id="html"]');
+      await expect(htmlBody).toBeVisible({ timeout: 15_000 });
+      const html = await htmlBody.inputValue();
+      const row = html.match(
+        new RegExp(
+          '<tr[^>]*>[\\s\\S]*?' + taskTitle.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '[\\s\\S]*?</tr>'
+        )
+      );
+      expect(row).toBeTruthy();
+      const rowHtml = row[0];
+      expect(rowHtml).toContain('export-progress-item--inline');
+      expect(rowHtml).toContain('export-progress-line');
+      expect(rowHtml).toMatch(
+        /export-progress-line[\s\S]*export-progress-num[\s\S]*export-progress-text[\s\S]*Inline note without category tags/
+      );
+      expect(rowHtml).not.toContain('export-progress-num-cell');
+      expect(rowHtml).not.toContain('export-progress-content');
+      expect(rowHtml).not.toContain('export-progress-text--indented');
+    } finally {
+      await app.close();
+    }
+  });
+
   test('legacy open vs assigned mismatch: task still listed when progress is in range', async () => {
     const mutPath = copyProfileForMutation(DEFAULT_E2E_PROFILE, 'summary-legacy-open-mismatch');
     const app = await launchFlowAssist({ profilePath: mutPath });

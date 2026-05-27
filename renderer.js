@@ -402,7 +402,9 @@
         delete p.category;
       });
       migrateSubtaskStatusChangesIfNeeded(s);
+      syncSubtaskFromStatusChanges(s);
     });
+    syncTaskFromStatusChanges(t);
     return t;
   }
 
@@ -443,6 +445,30 @@
     return 0;
   }
 
+  function progressDateValidationError(progressYMD, assignedYMD) {
+    var p = normalizeDateYMD(progressYMD);
+    var a = normalizeDateYMD(assignedYMD);
+    if (!p || !a) return null;
+    if (compareDateStr(p, a) < 0) {
+      return 'Progress date must be on or after the assigned date (' + a + ').';
+    }
+    return null;
+  }
+
+  function etaValidationError(etaYMD, assignedYMD) {
+    var e = normalizeDateYMD(etaYMD);
+    var a = normalizeDateYMD(assignedYMD);
+    if (!e || !a) return null;
+    if (compareDateStr(e, a) < 0) {
+      return 'ETA cannot be before the assigned date (' + a + ').';
+    }
+    return null;
+  }
+
+  function showDateValidationAlert(message) {
+    window.alert(message);
+  }
+
   /** Canonical values for status history: Open | Ongoing | Done | Dropped */
   function normalizeStatusForHistory(st) {
     if (st == null || st === '') return 'Open';
@@ -451,70 +477,47 @@
     return st;
   }
 
-  /** Logical rank: Open=0, Ongoing=1, Done=2, Dropped=3. */
-  function statusChangeRank(st) {
-    var n = normalizeStatusForHistory(st);
-    if (n === 'Open') return 0;
-    if (n === 'Ongoing') return 1;
-    if (n === 'Done') return 2;
-    if (n === 'Dropped') return 3;
-    return 4;
-  }
-
+  /** Timeline order: date ascending, then insertion order (allows Done → Ongoing/Open same day). */
   function sortedStatusChanges(changes) {
     if (!changes || !changes.length) return [];
-    var list = changes.slice().sort(function (a, b) {
-      var da = (a.date && String(a.date).trim()) || '';
-      var db = (b.date && String(b.date).trim()) || '';
+    var indexed = changes.map(function (c, i) { return { c: c, i: i }; });
+    indexed.sort(function (a, b) {
+      var da = (a.c.date && String(a.c.date).trim()) || '';
+      var db = (b.c.date && String(b.c.date).trim()) || '';
       var c = compareDateStr(da, db);
       if (c !== 0) return c;
-      var ra = statusChangeRank(a.status);
-      var rb = statusChangeRank(b.status);
-      if (ra !== rb) return ra - rb;
-      return String(a.id || '').localeCompare(String(b.id || ''));
+      if (a.i !== b.i) return a.i - b.i;
+      return String(a.c.id || '').localeCompare(String(b.c.id || ''));
     });
-    for (var i = 1; i < list.length; i++) {
-      var prevRank = statusChangeRank(list[i - 1].status);
-      var curRank = statusChangeRank(list[i].status);
-      var prevDate = (list[i - 1].date && String(list[i - 1].date).trim()) || '';
-      var curDate = (list[i].date && String(list[i].date).trim()) || '';
-      if (curRank > prevRank && curDate && prevDate && curDate < prevDate) {
-        list[i].date = prevDate;
-      }
-    }
-    return list;
+    return indexed.map(function (x) { return x.c; });
   }
 
   /**
-   * Mutate dates in-place so that logical order is respected:
-   *   Open(0) ≤ Ongoing(1) ≤ Done(2) ≤ Dropped(3)
-   * If a higher-rank entry has a date earlier than a lower-rank entry,
-   * pull it forward; if a lower-rank entry has a date later than the
-   * next higher-rank entry, push it back.  Two passes (forward + backward)
-   * guarantee full consistency.
+   * Nudge status-change dates along the timeline (date + insertion order) without
+   * reordering rows or assuming lifecycle rank always increases.
    */
   function enforceStatusChangeDateOrder(changes) {
     if (!changes || changes.length < 2) return;
-    changes.sort(function (a, b) {
-      var ra = statusChangeRank(a.status);
-      var rb = statusChangeRank(b.status);
-      if (ra !== rb) return ra - rb;
-      var da = (a.date && String(a.date).trim()) || '';
-      var db = (b.date && String(b.date).trim()) || '';
-      return compareDateStr(da, db);
+    var order = changes.map(function (c, i) { return { c: c, i: i }; });
+    order.sort(function (a, b) {
+      var da = (a.c.date && String(a.c.date).trim()) || '';
+      var db = (b.c.date && String(b.c.date).trim()) || '';
+      var c = compareDateStr(da, db);
+      if (c !== 0) return c;
+      return a.i - b.i;
     });
-    for (var i = 1; i < changes.length; i++) {
-      var prev = (changes[i - 1].date && String(changes[i - 1].date).trim()) || '';
-      var cur = (changes[i].date && String(changes[i].date).trim()) || '';
+    for (var i = 1; i < order.length; i++) {
+      var prev = (order[i - 1].c.date && String(order[i - 1].c.date).trim()) || '';
+      var cur = (order[i].c.date && String(order[i].c.date).trim()) || '';
       if (cur && prev && cur < prev) {
-        changes[i].date = prev;
+        order[i].c.date = prev;
       }
     }
-    for (var j = changes.length - 2; j >= 0; j--) {
-      var next = (changes[j + 1].date && String(changes[j + 1].date).trim()) || '';
-      var cj = (changes[j].date && String(changes[j].date).trim()) || '';
+    for (var j = order.length - 2; j >= 0; j--) {
+      var next = (order[j + 1].c.date && String(order[j + 1].c.date).trim()) || '';
+      var cj = (order[j].c.date && String(order[j].c.date).trim()) || '';
       if (cj && next && cj > next) {
-        changes[j].date = next;
+        order[j].c.date = next;
       }
     }
   }
@@ -988,6 +991,9 @@
     summaryGenerated: false,
     lastSummaryMeta: null,
     listFilter: 'all',
+    /** Effort Wise tab: anchor date (YYYY-MM-DD) and day/week granularity (session-only). */
+    effortWiseFocusDate: new Date().toISOString().slice(0, 10),
+    effortWiseGranularity: 'day',
     /** In-memory form drafts (not persisted until Save). Survives collapse / view switch. */
     editorDrafts: {
       tasks: {},
@@ -1967,8 +1973,23 @@
     if (!task || !task.subtasks || !task.subtasks.length) return [];
     var sorted = sortSubtasksForTask(task.id, task.subtasks);
     var vis = getSubtaskVisibilityForTask(task.id);
-    return sorted.filter(function (s) {
+    var out = sorted.filter(function (s) {
       return vis[canonicalSubtaskStatusLabel(s)] === true;
+    });
+    if ((state.listFilter || 'all') === 'effortwise') {
+      var range = getEffortWiseRange();
+      out = out.filter(function (s) {
+        return entityMatchesEffortWiseRange(s, range.from, range.to);
+      });
+    }
+    return out;
+  }
+
+  function filterProgressUpdatesForListView(updates) {
+    if ((state.listFilter || 'all') !== 'effortwise') return updates || [];
+    var range = getEffortWiseRange();
+    return (updates || []).filter(function (p) {
+      return p.date_added && p.date_added >= range.from && p.date_added <= range.to;
     });
   }
 
@@ -2889,6 +2910,12 @@
   }
 
   function addTask(task) {
+    var assigned = task.assigned_date || new Date().toISOString().slice(0, 10);
+    var etaErr = etaValidationError(task.eta, assigned);
+    if (etaErr) {
+      showDateValidationAlert(etaErr);
+      return Promise.resolve(false);
+    }
     var t = createTask(task);
     state.data.tasks.push(t);
     return save().then(function () { render(); return t; });
@@ -2897,6 +2924,14 @@
   function updateTask(id, updates) {
     var task = state.data.tasks.find(function (t) { return t.id === id; });
     if (!task) return Promise.resolve();
+    if (updates.eta !== undefined && updates.eta != null && String(updates.eta).trim()) {
+      var assignedForEta = updates.assigned_date !== undefined ? updates.assigned_date : task.assigned_date;
+      var etaErr = etaValidationError(updates.eta, assignedForEta);
+      if (etaErr) {
+        showDateValidationAlert(etaErr);
+        return Promise.resolve(false);
+      }
+    }
     migrateTaskStatusChangesIfNeeded(task);
     if (updates.status !== undefined) {
       var prevNorm = normalizeStatusForHistory(task.status);
@@ -2927,6 +2962,13 @@
   function recordEtaUpdate(taskId, newEta) {
     var task = state.data.tasks.find(function (t) { return t.id === taskId; });
     if (!task) return Promise.resolve();
+    if (newEta != null && String(newEta).trim()) {
+      var etaErr = etaValidationError(newEta, task.assigned_date);
+      if (etaErr) {
+        showDateValidationAlert(etaErr);
+        return Promise.resolve(false);
+      }
+    }
     var oldEta = task.eta || '';
     if (!task.eta_updates) task.eta_updates = [];
     task.eta_updates.push({
@@ -3001,17 +3043,23 @@
   function addProgressUpdate(taskId, payload) {
     var task = state.data.tasks.find(function (t) { return t.id === taskId; });
     if (!task) return Promise.resolve();
+    var progressDate = payload.date_added || new Date().toISOString().slice(0, 10);
+    var progressErr = progressDateValidationError(progressDate, task.assigned_date);
+    if (progressErr) {
+      showDateValidationAlert(progressErr);
+      return Promise.resolve(false);
+    }
     if (!task.progress_updates) task.progress_updates = [];
     task.progress_updates.push({
       id: generateId(),
       text: payload.text || '',
-      date_added: payload.date_added || new Date().toISOString().slice(0, 10),
+      date_added: progressDate,
       effort_consumed_hours: payload.effort_consumed_hours ?? 0,
       categories: Array.isArray(payload.categories) ? payload.categories.slice() : []
     });
     task.progress_updates = sortProgressUpdatesOldestFirst(task.progress_updates);
     delete state.progressLogWindowStart[progressLogKeyMain(taskId)];
-    return save().then(function () { render(); });
+    return save().then(function () { render(); return true; });
   }
 
   function updateProgressUpdate(taskId, updateId, payload) {
@@ -3019,6 +3067,13 @@
     if (!task || !task.progress_updates) return Promise.resolve();
     var u = task.progress_updates.find(function (p) { return p.id === updateId; });
     if (!u) return Promise.resolve();
+    if (payload.date_added !== undefined) {
+      var progressErr = progressDateValidationError(payload.date_added, task.assigned_date);
+      if (progressErr) {
+        showDateValidationAlert(progressErr);
+        return Promise.resolve(false);
+      }
+    }
     if (payload.text !== undefined) u.text = payload.text;
     if (payload.date_added !== undefined) u.date_added = payload.date_added;
     if (payload.effort_consumed_hours !== undefined) u.effort_consumed_hours = payload.effort_consumed_hours;
@@ -3026,7 +3081,7 @@
       u.categories = Array.isArray(payload.categories) ? payload.categories.slice() : [];
     }
     task.progress_updates = sortProgressUpdatesOldestFirst(task.progress_updates);
-    return save().then(function () { render(); });
+    return save().then(function () { render(); return true; });
   }
 
   function deleteProgressUpdate(taskId, updateId) {
@@ -3080,6 +3135,14 @@
     if (!task || !task.subtasks) return Promise.resolve();
     var s = task.subtasks.find(function (x) { return x.id === subtaskId; });
     if (!s) return Promise.resolve();
+    if (updates.eta !== undefined && updates.eta != null && String(updates.eta).trim()) {
+      var assignedForEta = updates.assigned_date !== undefined ? updates.assigned_date : s.assigned_date;
+      var etaErr = etaValidationError(updates.eta, assignedForEta);
+      if (etaErr) {
+        showDateValidationAlert(etaErr);
+        return Promise.resolve(false);
+      }
+    }
     if (updates.title !== undefined) s.title = updates.title;
     if (updates.status !== undefined) {
       migrateSubtaskStatusChangesIfNeeded(s);
@@ -3120,17 +3183,23 @@
     if (!task || !task.subtasks) return Promise.resolve();
     var s = task.subtasks.find(function (x) { return x.id === subtaskId; });
     if (!s) return Promise.resolve();
+    var progressDate = payload.date_added || new Date().toISOString().slice(0, 10);
+    var progressErr = progressDateValidationError(progressDate, s.assigned_date);
+    if (progressErr) {
+      showDateValidationAlert(progressErr);
+      return Promise.resolve(false);
+    }
     if (!s.progress_updates) s.progress_updates = [];
     s.progress_updates.push({
       id: generateId(),
       text: payload.text || '',
-      date_added: payload.date_added || new Date().toISOString().slice(0, 10),
+      date_added: progressDate,
       effort_consumed_hours: payload.effort_consumed_hours ?? 0,
       categories: Array.isArray(payload.categories) ? payload.categories.slice() : []
     });
     s.progress_updates = sortProgressUpdatesOldestFirst(s.progress_updates);
     delete state.progressLogWindowStart[progressLogKeySub(taskId, subtaskId)];
-    return save().then(function () { render(); });
+    return save().then(function () { render(); return true; });
   }
 
   function updateSubtaskProgressUpdate(taskId, subtaskId, updateId, payload) {
@@ -3140,6 +3209,13 @@
     if (!s || !s.progress_updates) return Promise.resolve();
     var u = s.progress_updates.find(function (p) { return p.id === updateId; });
     if (!u) return Promise.resolve();
+    if (payload.date_added !== undefined) {
+      var progressErr = progressDateValidationError(payload.date_added, s.assigned_date);
+      if (progressErr) {
+        showDateValidationAlert(progressErr);
+        return Promise.resolve(false);
+      }
+    }
     if (payload.text !== undefined) u.text = payload.text;
     if (payload.date_added !== undefined) u.date_added = payload.date_added;
     if (payload.effort_consumed_hours !== undefined) u.effort_consumed_hours = payload.effort_consumed_hours;
@@ -3147,7 +3223,7 @@
       u.categories = Array.isArray(payload.categories) ? payload.categories.slice() : [];
     }
     s.progress_updates = sortProgressUpdatesOldestFirst(s.progress_updates);
-    return save().then(function () { render(); });
+    return save().then(function () { render(); return true; });
   }
 
   function deleteSubtaskProgressUpdate(taskId, subtaskId, updateId) {
@@ -4460,7 +4536,7 @@
           '</div>' +
         '</div>' +
         '<div class="task-progress-block">' +
-          renderProgressLogSection(s.progress_updates, progressLogKeySub(taskId, s.id), true, taskId, s.id) +
+          renderProgressLogSection(filterProgressUpdatesForListView(s.progress_updates), progressLogKeySub(taskId, s.id), true, taskId, s.id) +
           '<div class="progress-add">' +
             '<div class="rich-textarea-wrap" data-rich-wysiwyg="1">' + renderRichFormatToolbarHtml() +
             '<div tabindex="0" role="textbox" aria-multiline="true" contenteditable="true" class="progress-text-in subtask-progress-text rich-markdown-wysiwyg auto-resize rich-text-target" data-placeholder="Progress here…">' + sProgInner + '</div></div>' +
@@ -4510,7 +4586,10 @@
     var bugNums = task.bug_numbers || (task.bug_number != null && task.bug_number !== 0 && task.bug_number !== '' ? [].concat(task.bug_number) : []);
     var bugStr = bugNums.length ? bugNums.join(', ') : null;
     var etaStr = task.eta || null;
-    var counts = subtaskCounts(task.subtasks);
+    var subsForCounts = ((state.listFilter || 'all') === 'effortwise')
+      ? getFilteredSubtasksForTask(task)
+      : task.subtasks;
+    var counts = subtaskCounts(subsForCounts);
 
     var effortSpentHrs = taskEffortSpentForRibbon(task);
     var effortSpentStr = effortSpentHrs ? (effortSpentHrs + ' hrs') : '0 hrs';
@@ -4748,7 +4827,7 @@
           '</div>' +
         '</div>' +
         '<div class="task-progress-block">' +
-          renderProgressLogSection(task.progress_updates, progressLogKeyMain(task.id), false, task.id, null) +
+          renderProgressLogSection(filterProgressUpdatesForListView(task.progress_updates), progressLogKeyMain(task.id), false, task.id, null) +
           '<div class="progress-add">' +
             '<div class="rich-textarea-wrap" data-rich-wysiwyg="1">' + renderRichFormatToolbarHtml() +
             '<div tabindex="0" role="textbox" aria-multiline="true" contenteditable="true" class="progress-text-in rich-markdown-wysiwyg auto-resize rich-text-target" data-placeholder="Progress here…">' + progTextInner + '</div></div>' +
@@ -4967,8 +5046,9 @@
         var view = li.querySelector('.progress-item-view');
         var updateId = li.dataset.updateId;
         var catWrapSave = li.querySelector('.progress-item-edit .category-dropdown-wrap');
+        var savePromise;
         if (isSub) {
-          updateSubtaskProgressUpdate(taskId, subtaskId, updateId, {
+          savePromise = updateSubtaskProgressUpdate(taskId, subtaskId, updateId, {
             text: takeRichEditorMarkdownOnSubmit(btn, function () {
               return li.querySelector('.progress-edit-text');
             }),
@@ -4977,7 +5057,7 @@
             categories: getSelectedCategoriesFromWrap(catWrapSave)
           });
         } else {
-          updateProgressUpdate(taskId, updateId, {
+          savePromise = updateProgressUpdate(taskId, updateId, {
             text: takeRichEditorMarkdownOnSubmit(btn, function () {
               return li.querySelector('.progress-edit-text');
             }),
@@ -4986,8 +5066,11 @@
             categories: getSelectedCategoriesFromWrap(catWrapSave)
           });
         }
-        edit.classList.add('hidden');
-        view.classList.remove('hidden');
+        savePromise.then(function (ok) {
+          if (ok === false) return;
+          edit.classList.add('hidden');
+          view.classList.remove('hidden');
+        });
       });
     });
     root.querySelectorAll('.progress-delete-btn').forEach(function (btn) {
@@ -5325,12 +5408,14 @@
           date_added: dateIn && dateIn.value || new Date().toISOString().slice(0, 10),
           effort_consumed_hours: effortIn ? parseFloat(effortIn.value) || 0 : 0,
           categories: getSelectedCategoriesFromWrap(progCatWrap)
+        }).then(function (ok) {
+          if (ok === false) return;
+          pruneTaskDraftProgressFields(taskId);
+          if (textIn) setRichWysiwygFromMarkdown(textIn, '');
+          if (dateIn) dateIn.value = '';
+          if (effortIn) effortIn.value = '';
+          resetCategoryDropdownWrap(progCatWrap);
         });
-        pruneTaskDraftProgressFields(taskId);
-        if (textIn) setRichWysiwygFromMarkdown(textIn, '');
-        if (dateIn) dateIn.value = '';
-        if (effortIn) effortIn.value = '';
-        resetCategoryDropdownWrap(progCatWrap);
       });
     });
 
@@ -5383,9 +5468,11 @@
           date_added: li.querySelector('.progress-edit-date').value || new Date().toISOString().slice(0, 10),
           effort_consumed_hours: parseFloat(li.querySelector('.progress-edit-effort').value) || 0,
           categories: getSelectedCategoriesFromWrap(catWrapSave)
+        }).then(function (ok) {
+          if (ok === false) return;
+          edit.classList.add('hidden');
+          view.classList.remove('hidden');
         });
-        edit.classList.add('hidden');
-        view.classList.remove('hidden');
       });
     });
 
@@ -5592,12 +5679,14 @@
             date_added: dateIn && dateIn.value || new Date().toISOString().slice(0, 10),
             effort_consumed_hours: effortIn ? parseFloat(effortIn.value) || 0 : 0,
             categories: getSelectedCategoriesFromWrap(subProgCatWrap)
+          }).then(function (ok) {
+            if (ok === false) return;
+            pruneSubtaskDraftProgressFields(subTaskId, subId);
+            if (textIn) setRichWysiwygFromMarkdown(textIn, '');
+            if (dateIn) dateIn.value = '';
+            if (effortIn) effortIn.value = '';
+            resetCategoryDropdownWrap(subProgCatWrap);
           });
-          pruneSubtaskDraftProgressFields(subTaskId, subId);
-          if (textIn) setRichWysiwygFromMarkdown(textIn, '');
-          if (dateIn) dateIn.value = '';
-          if (effortIn) effortIn.value = '';
-          resetCategoryDropdownWrap(subProgCatWrap);
         });
       });
 
@@ -5650,9 +5739,11 @@
             date_added: li.querySelector('.progress-edit-date').value || new Date().toISOString().slice(0, 10),
             effort_consumed_hours: parseFloat(li.querySelector('.progress-edit-effort').value) || 0,
             categories: getSelectedCategoriesFromWrap(subCatWrapSave)
+          }).then(function (ok) {
+            if (ok === false) return;
+            edit.classList.add('hidden');
+            view.classList.remove('hidden');
           });
-          edit.classList.add('hidden');
-          view.classList.remove('hidden');
         });
       });
 
@@ -6072,6 +6163,82 @@
     return d.toISOString().slice(0, 10);
   }
 
+  function localTodayYmd() {
+    return toYMD(new Date());
+  }
+
+  /** Snap Effort Wise focus to the work-week start from Settings → Week starts on. */
+  function snapEffortWiseFocusToWorkWeek() {
+    if (state.effortWiseGranularity !== 'week') return;
+    var focus = state.effortWiseFocusDate || localTodayYmd();
+    var ws = getNormalizedWeekStartDay(getSettings());
+    state.effortWiseFocusDate = getWeekStartYMD(focus, ws);
+  }
+
+  /** Previous/next day or full work week (per settings week start). */
+  function shiftEffortWisePeriod(delta) {
+    var focus = state.effortWiseFocusDate || localTodayYmd();
+    if (state.effortWiseGranularity === 'week') {
+      var ws = getNormalizedWeekStartDay(getSettings());
+      var weekStart = getWeekStartYMD(focus, ws);
+      state.effortWiseFocusDate = addDays(weekStart, delta * 7);
+    } else {
+      state.effortWiseFocusDate = addDays(focus, delta);
+    }
+  }
+
+  function getEffortWiseRange() {
+    var focus = state.effortWiseFocusDate || localTodayYmd();
+    if (state.effortWiseGranularity === 'week') {
+      var r = getWorkWeekRangeForDate(focus, getSettings());
+      return { from: r.from, to: r.to };
+    }
+    return { from: focus, to: focus };
+  }
+
+  function entityMatchesEffortWiseRange(entity, from, to) {
+    var ad = entity.assigned_date;
+    if (ad && ad >= from && ad <= to) return true;
+    return (entity.progress_updates || []).some(function (p) {
+      return p.date_added && p.date_added >= from && p.date_added <= to;
+    });
+  }
+
+  function taskMatchesEffortWiseRange(task, from, to) {
+    if (entityMatchesEffortWiseRange(task, from, to)) return true;
+    return (task.subtasks || []).some(function (s) {
+      return entityMatchesEffortWiseRange(s, from, to);
+    });
+  }
+
+  function syncEffortWiseToolbar() {
+    var toolbar = $('effort-wise-toolbar');
+    var filter = state.listFilter || 'all';
+    if (!toolbar) return;
+    var show = filter === 'effortwise' && state.view === 'list';
+    toolbar.hidden = !show;
+    if (!show) return;
+    var focus = state.effortWiseFocusDate || localTodayYmd();
+    var gran = state.effortWiseGranularity || 'day';
+    var labelEl = $('effort-wise-period-label');
+    var gotoEl = $('effort-wise-goto-date');
+    if (labelEl) {
+      if (gran === 'week') {
+        var weekRange = getWorkWeekRangeForDate(focus, getSettings());
+        var weekDates = getWeekDates(focus);
+        var a = formatCalendarDate(weekDates[0] || weekRange.from);
+        var b = formatCalendarDate(weekDates[6] || weekRange.to);
+        labelEl.textContent = a.dateMonthYear + ' – ' + b.dateMonthYear;
+      } else {
+        labelEl.textContent = formatCalendarDate(focus).dateMonthYear;
+      }
+    }
+    if (gotoEl) gotoEl.value = focus;
+    toolbar.querySelectorAll('.effort-wise-granularity-btn').forEach(function (btn) {
+      btn.classList.toggle('active', btn.getAttribute('data-effort-granularity') === gran);
+    });
+  }
+
   function purgeEditorDraftsForTask(taskId) {
     if (!taskId) return;
     delete state.editorDrafts.tasks[taskId];
@@ -6264,6 +6431,7 @@
     document.querySelectorAll('.list-view-tab').forEach(function (btn) {
       btn.classList.toggle('active', btn.getAttribute('data-list-filter') === filter);
     });
+    syncEffortWiseToolbar();
 
     if (filter === 'today' || filter === 'yesterday') {
       var targetDate = filter === 'today' ? new Date().toISOString().slice(0, 10) : getYesterdayStr();
@@ -6273,6 +6441,33 @@
       taskListEl.innerHTML = matched.length
         ? matched.map(renderTaskCard).join('')
         : '<p class="empty-state">No progress entries for ' + label.toLowerCase() + '.</p>';
+      taskListEl.querySelectorAll('.task-card').forEach(bindTaskCardEvents);
+      if (addSection) addSection.style.display = 'none';
+      if (completedSection) completedSection.style.display = 'none';
+      separators.forEach(function (s) { s.style.display = 'none'; });
+      if (headingRow) headingRow.style.display = '';
+    } else if (filter === 'effortwise') {
+      var ewRange = getEffortWiseRange();
+      var ewMatched = sortMainTasks(tasks.filter(function (t) {
+        return taskMatchesEffortWiseRange(t, ewRange.from, ewRange.to);
+      }));
+      var ewFocus = state.effortWiseFocusDate || localTodayYmd();
+      var ewPeriod;
+      if (state.effortWiseGranularity === 'week') {
+        var ewWeekDates = getWeekDates(ewFocus);
+        var ewA = formatCalendarDate(ewWeekDates[0] || ewRange.from);
+        var ewB = formatCalendarDate(ewWeekDates[6] || ewRange.to);
+        ewPeriod = ewA.dateMonthYear + ' – ' + ewB.dateMonthYear;
+      } else {
+        ewPeriod = formatCalendarDate(ewFocus).dateMonthYear;
+      }
+      if (headingEl) headingEl.textContent = 'Effort Wise — ' + ewPeriod + ' (' + ewMatched.length + ')';
+      var ewEmpty = (state.effortWiseGranularity === 'week')
+        ? 'No tasks with progress or assignment for this week.'
+        : 'No tasks with progress or assignment for this day.';
+      taskListEl.innerHTML = ewMatched.length
+        ? ewMatched.map(renderTaskCard).join('')
+        : '<p class="empty-state">' + ewEmpty + '</p>';
       taskListEl.querySelectorAll('.task-card').forEach(bindTaskCardEvents);
       if (addSection) addSection.style.display = 'none';
       if (completedSection) completedSection.style.display = 'none';
@@ -6713,23 +6908,25 @@
       if (!updates || !updates.length) return '<span class="muted">No progress made.</span>';
       var ordered = sortProgressUpdatesOldestFirst(updates);
       var blocks = ordered.map(function (p, i) {
-        var numCell = '<span class="export-progress-num-cell">' + escapeHtml(String(i + 1) + '.') + '</span>';
+        var num = '<span class="export-progress-num">' + escapeHtml(String(i + 1) + '.') + '</span>';
         var catsArr = progressUpdateCategoriesArray(p);
         var hasCats = catsArr.some(function (c) { return String(c || '').trim(); });
-        var pills = summaryProgressCategoryPillsHtml(catsArr, 'export-progress-category-pill');
+        var pills = hasCats ? summaryProgressCategoryPillsHtml(catsArr, 'export-progress-category-pill') : '';
         var body = formatProgressSummaryTextHtml((p.text || '').trim(), 5000);
         var effort = showProgressEntryHours ? summaryProgressEffortHtml(p, 'export-progress-effort') : '';
-        var headParts = [];
-        if (hasCats && pills) headParts.push(pills);
-        if (effort) headParts.push(effort);
-        var headHtml = headParts.length
-          ? '<div class="export-progress-head">' + headParts.join('') + '</div>'
-          : '';
+        if (showProgressEntryHours) {
+          var textBlock = body
+            ? '<div class="export-progress-text export-progress-text--indented">' + body + '</div>'
+            : '<div class="export-progress-text export-progress-text--indented"><span class="muted">No note</span></div>';
+          return '<div class="export-progress-item">' +
+            '<div class="export-progress-first-line">' + num + pills + effort + '</div>' +
+            textBlock + '</div>';
+        }
         var textHtml = body
           ? '<div class="export-progress-text">' + body + '</div>'
           : '<div class="export-progress-text"><span class="muted">No note</span></div>';
-        return '<div class="export-progress-item">' + numCell +
-          '<div class="export-progress-content">' + headHtml + textHtml + '</div></div>';
+        return '<div class="export-progress-item export-progress-item--inline">' +
+          '<div class="export-progress-line">' + num + pills + textHtml + '</div></div>';
       });
       return blocks.join('');
     }
@@ -7357,12 +7554,13 @@
       '.export-p-label{font-weight:700;margin-top:2px;color:#0f172a;font-size:11px}' +
       '.export-p-label-gap{margin-top:12px}' +
       '.export-p-body,.export-c-body{margin:6px 0 0}' +
-      '.export-progress-item{display:grid;grid-template-columns:max-content minmax(0,1fr);column-gap:8px;align-items:start;margin:0 0 14px}' +
+      '.export-progress-item{margin:0 0 14px}' +
       '.export-progress-item:last-child{margin-bottom:0}' +
-      '.export-progress-num-cell{grid-column:1;grid-row:1;font-weight:700;color:#64748b;text-align:left;line-height:1.55;white-space:nowrap}' +
-      '.export-progress-content{grid-column:2;grid-row:1;min-width:0;display:flex;flex-direction:column;gap:5px}' +
-      '.export-progress-head{display:flex;flex-wrap:wrap;align-items:center;gap:8px;line-height:1.55}' +
-      '.export-progress-text{font-size:11.5px;line-height:1.55;color:#334155;word-wrap:break-word;overflow-wrap:break-word}' +
+      '.export-progress-line,.export-progress-first-line{display:flex;flex-wrap:wrap;align-items:baseline;gap:4px 8px;line-height:1.55}' +
+      '.export-progress-num{font-weight:700;color:#64748b;flex-shrink:0;white-space:nowrap}' +
+      '.export-progress-text{font-size:11.5px;line-height:1.55;color:#334155;word-wrap:break-word;overflow-wrap:break-word;min-width:0}' +
+      '.export-progress-item--inline .export-progress-text{flex:1 1 12em}' +
+      '.export-progress-text--indented{margin-top:4px;margin-left:1.35em;padding-left:0.5em;border-left:2px solid #cbd5e1;width:100%;box-sizing:border-box}' +
       '.export-progress-effort{font-size:11px;font-weight:600;color:#64748b;flex-shrink:0}' +
       '.export-progress-category-pill{display:inline-flex;align-items:center;padding:3px 8px;border-radius:999px;font-size:9px;font-weight:700;border:1px solid #a5b4fc;background:linear-gradient(180deg,#eef2ff 0%,#e0e7ff 100%);color:#4338ca;vertical-align:middle}' +
       'tr.export-row-highlight td{background-color:#ecfdf5!important}' +
@@ -9427,6 +9625,7 @@
     else if (state.view === 'calendar') renderCalendar();
     else if (state.view === 'summary') renderSummary();
     else if (state.view === 'relax') renderRelax();
+    if (state.view !== 'list') syncEffortWiseToolbar();
     wireNotesToolbar();
     renderNotes();
     if (state.progressHistoryOpen) refreshProgressHistoryModal();
@@ -9692,6 +9891,52 @@
       });
     }
 
+    var effortWisePrevBtn = $('effort-wise-prev-btn');
+    var effortWiseNextBtn = $('effort-wise-next-btn');
+    var effortWiseGotoDate = $('effort-wise-goto-date');
+    var effortWiseCalendarBtn = $('effort-wise-calendar-btn');
+    if (effortWisePrevBtn) {
+      effortWisePrevBtn.addEventListener('click', function () {
+        shiftEffortWisePeriod(-1);
+        renderList();
+      });
+    }
+    if (effortWiseNextBtn) {
+      effortWiseNextBtn.addEventListener('click', function () {
+        shiftEffortWisePeriod(1);
+        renderList();
+      });
+    }
+    if (effortWiseGotoDate) {
+      effortWiseGotoDate.addEventListener('change', function () {
+        if (effortWiseGotoDate.value) {
+          state.effortWiseFocusDate = effortWiseGotoDate.value;
+          snapEffortWiseFocusToWorkWeek();
+          renderList();
+        }
+      });
+    }
+    if (effortWiseCalendarBtn && effortWiseGotoDate) {
+      effortWiseCalendarBtn.addEventListener('click', function () {
+        if (typeof effortWiseGotoDate.showPicker === 'function') {
+          effortWiseGotoDate.showPicker();
+        } else {
+          effortWiseGotoDate.focus();
+          effortWiseGotoDate.click();
+        }
+      });
+    }
+    document.querySelectorAll('.effort-wise-granularity-btn').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        var gran = btn.getAttribute('data-effort-granularity');
+        if (gran === 'day' || gran === 'week') {
+          state.effortWiseGranularity = gran;
+          if (gran === 'week') snapEffortWiseFocusToWorkWeek();
+          renderList();
+        }
+      });
+    });
+
     var mainFilterBtn = $('main-task-filter-btn');
     var mainFilterMenu = $('main-task-filter-menu');
     if (mainFilterBtn && mainFilterWrap && mainFilterMenu) {
@@ -9749,7 +9994,8 @@
         status: 'Open',
         categories: taskCategories,
         project: taskProject
-      }).then(function () {
+      }).then(function (result) {
+        if (result === false) return;
         taskTitle.value = '';
         if (taskDescription) setRichWysiwygFromMarkdown(taskDescription, '');
         var addCatWrap = $('add-task-category-dropdown') && $('add-task-category-dropdown').querySelector('.category-dropdown-wrap');

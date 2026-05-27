@@ -22,6 +22,69 @@ test.describe('List view — tabs and sort', () => {
     }
   });
 
+  test('Effort Wise week range follows Settings week start day', async () => {
+    const app = await launchFlowAssist();
+    try {
+      const page = await getMainWindowPage(app);
+      await waitForProfileLoaded(page);
+
+      await page.locator('#settings-btn').click();
+      await page.locator('#setting-week-start').selectOption('0');
+      await page.locator('#settings-save-btn').click();
+      await expect(page.locator('#settings-modal')).toHaveAttribute('aria-hidden', 'true');
+
+      await page.locator('.list-view-tab[data-list-filter="effortwise"]').click();
+      await page.locator('.effort-wise-granularity-btn[data-effort-granularity="week"]').click();
+
+      const goto = page.locator('#effort-wise-goto-date');
+      await goto.evaluate(function (el) {
+        el.value = '2026-05-27';
+        el.dispatchEvent(new Event('change', { bubbles: true }));
+      });
+
+      await expect(page.locator('#effort-wise-period-label')).toContainText('May 24, 2026');
+      await expect(page.locator('#effort-wise-period-label')).toContainText('May 30, 2026');
+
+      await page.locator('#settings-btn').click();
+      await page.locator('#setting-week-start').selectOption('1');
+      await page.locator('#settings-save-btn').click();
+      await expect(page.locator('#settings-modal')).toHaveAttribute('aria-hidden', 'true');
+
+      await goto.evaluate(function (el) {
+        el.value = '2026-05-27';
+        el.dispatchEvent(new Event('change', { bubbles: true }));
+      });
+
+      await expect(page.locator('#effort-wise-period-label')).toContainText('May 25, 2026');
+      await expect(page.locator('#effort-wise-period-label')).toContainText('May 31, 2026');
+    } finally {
+      await app.close();
+    }
+  });
+
+  test('Effort Wise tab shows toolbar and Day/Week granularity', async () => {
+    const app = await launchFlowAssist();
+    try {
+      const page = await getMainWindowPage(app);
+      await waitForProfileLoaded(page);
+
+      await page.locator('.list-view-tab[data-list-filter="effortwise"]').click();
+      await expect(page.locator('.list-view-tab[data-list-filter="effortwise"]')).toHaveClass(/active/);
+      const toolbar = page.locator('#effort-wise-toolbar');
+      await expect(toolbar).toBeVisible();
+      await expect(page.locator('#effort-wise-period-label')).not.toBeEmpty();
+
+      await page.locator('.effort-wise-granularity-btn[data-effort-granularity="week"]').click();
+      await expect(page.locator('.effort-wise-granularity-btn[data-effort-granularity="week"]')).toHaveClass(/active/);
+
+      await page.locator('#effort-wise-prev-btn').click();
+      await expect(toolbar).toBeVisible();
+      await expect(page.locator('#effort-wise-period-label')).not.toBeEmpty();
+    } finally {
+      await app.close();
+    }
+  });
+
   test('sort menu opens and closes; selecting an option closes menu', async () => {
     const app = await launchFlowAssist();
     try {

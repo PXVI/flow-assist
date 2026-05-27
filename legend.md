@@ -227,7 +227,15 @@ All modals: outer `#…-modal.modal`, `.modal-backdrop`, inner `.modal-content`.
 | Tab — Today | `.list-view-tab[data-list-filter="today"]` | static |
 | Tab — Yesterday | `.list-view-tab[data-list-filter="yesterday"]` | static |
 | Tab — Archive | `.list-view-tab[data-list-filter="archive"]` | static |
+| Tab — Effort Wise | `.list-view-tab[data-list-filter="effortwise"]` | static — green label |
 | Active list tab | `.list-view-tab.active` | static |
+| Effort Wise toolbar | `#effort-wise-toolbar` | static — visible when Effort Wise tab active |
+| Effort Wise period label | `#effort-wise-period-label` | static |
+| Effort Wise previous / next | `#effort-wise-prev-btn`, `#effort-wise-next-btn` (`.effort-wise-icon-btn`) | static |
+| Effort Wise date picker | `#effort-wise-goto-date` | static — hidden input; opened via calendar button |
+| Effort Wise calendar button | `#effort-wise-calendar-btn` (`.effort-wise-icon-btn`) | static |
+| Effort Wise toolbar separator | `.effort-wise-toolbar-sep` | static |
+| Effort Wise Day / Week | `.effort-wise-granularity-btn[data-effort-granularity]` | static — `day`, `week` |
 | Main tasks heading row | `.main-tasks-heading-row` | static |
 | Main tasks heading | `.main-tasks-heading` | static — "Main Tasks List" |
 | Main task sort button | `#main-task-filter-btn` | static |
@@ -725,7 +733,7 @@ Rendered into `#summary-output` after Generate; export builds separate HTML/CSS 
 |-----------|-------|------------------|
 | `data-view` | `.nav-btn`, `.top-bar-view-screen` | `list`, `calendar`, `summary`, `notes`, `relax` |
 | `data-sidebar-mode` | `.top-bar-sidebar-opt` | `full`, `collapsed` |
-| `data-list-filter` | `.list-view-tab` | `all`, `today`, `yesterday`, `archive` |
+| `data-list-filter` | `.list-view-tab` | `all`, `today`, `yesterday`, `archive`, `effortwise` |
 | `data-sort-by` | `.filter-option` | `date_added`, `priority`, `eta`, `assigned_date` |
 | `data-sort-dir` | `.filter-option` | `asc`, `desc` |
 | `data-chart-style` | `.calendar-chart-style-btn` | `basic`, `gantt` |

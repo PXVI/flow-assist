@@ -78,7 +78,7 @@
 
             <div class="settings-field">
               <label for="setting-week-start" class="settings-label">Week starts on</label>
-              <p class="settings-hint">Used for calendar month padding, week strips, summary default range, and week productivity.</p>
+              <p class="settings-hint">Used for calendar month padding, week strips, summary default range, week productivity, and Effort Wise week view.</p>
               <select id="setting-week-start" class="add-task-input">
                 <option value="0">Sunday</option>
                 <option value="1">Monday</option>
@@ -282,6 +282,18 @@
         <button type="button" class="list-view-tab" data-list-filter="today">Today</button>
         <button type="button" class="list-view-tab" data-list-filter="yesterday">Yesterday</button>
         <button type="button" class="list-view-tab" data-list-filter="archive">Archive</button>
+        <button type="button" class="list-view-tab list-view-tab--effortwise" data-list-filter="effortwise">Effort Wise</button>
+      </div>
+      <div id="effort-wise-toolbar" class="effort-wise-toolbar" hidden>
+        <button type="button" id="effort-wise-prev-btn" class="effort-wise-icon-btn" title="Previous period" aria-label="Previous period"><svg width="12" height="12" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M9.78 4.22a.75.75 0 010 1.06L7.06 8l2.72 2.72a.75.75 0 11-1.06 1.06L5.47 8.53a.75.75 0 010-1.06l3.25-3.25a.75.75 0 011.06 0z"/></svg></button>
+        <span id="effort-wise-period-label" class="effort-wise-period-label"></span>
+        <button type="button" id="effort-wise-next-btn" class="effort-wise-icon-btn" title="Next period" aria-label="Next period"><svg width="12" height="12" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M6.22 4.22a.75.75 0 011.06 0l3.25 3.25a.75.75 0 010 1.06l-3.25 3.25a.75.75 0 01-1.06-1.06L8.94 8 6.22 5.28a.75.75 0 010-1.06z"/></svg></button>
+        <span class="effort-wise-toolbar-sep" aria-hidden="true"></span>
+        <input type="date" id="effort-wise-goto-date" class="effort-wise-goto-input" title="Go to date" aria-label="Go to date">
+        <button type="button" id="effort-wise-calendar-btn" class="effort-wise-icon-btn" title="Pick date" aria-label="Pick date"><svg width="12" height="12" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M4.75 0a.75.75 0 01.75.75V2h5V.75a.75.75 0 011.5 0V2h1.25c.966 0 1.75.784 1.75 1.75v10.5A1.75 1.75 0 0113.25 16H2.75A1.75 1.75 0 011 14.25V3.75C1 2.784 1.784 2 2.75 2H4V.75A.75.75 0 014.75 0zM2.5 7.5v6.75c0 .138.112.25.25.25h10.5a.25.25 0 00.25-.25V7.5zm0-3.75V6h11V3.75a.25.25 0 00-.25-.25H2.75a.25.25 0 00-.25.25z"/></svg></button>
+        <span class="effort-wise-toolbar-sep" aria-hidden="true"></span>
+        <button type="button" class="effort-wise-granularity-btn active" data-effort-granularity="day">Day</button>
+        <button type="button" class="effort-wise-granularity-btn" data-effort-granularity="week">Week</button>
       </div>
       <div class="main-tasks-heading-row">
         <h3 class="main-tasks-heading">Main Tasks List</h3>
