@@ -73,8 +73,13 @@ test.describe('List view — tabs and sort', () => {
       const toolbar = page.locator('#effort-wise-toolbar');
       await expect(toolbar).toBeVisible();
       await expect(page.locator('#effort-wise-period-label')).not.toBeEmpty();
+      await expect(page.locator('#effort-wise-spent-value')).toBeVisible();
+      await expect(page.locator('#effort-wise-capacity-value')).toBeVisible();
+      await expect(page.locator('#effort-wise-spent-value')).not.toContainText('hrs');
+      await expect(page.locator('#effort-wise-capacity-value')).not.toContainText('hrs');
 
       await page.locator('.effort-wise-granularity-btn[data-effort-granularity="week"]').click();
+      await expect(page.locator('#effort-wise-spent-value')).toBeVisible();
       await expect(page.locator('.effort-wise-granularity-btn[data-effort-granularity="week"]')).toHaveClass(/active/);
 
       await page.locator('#effort-wise-prev-btn').click();

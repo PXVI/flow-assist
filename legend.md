@@ -231,6 +231,7 @@ All modals: outer `#…-modal.modal`, `.modal-backdrop`, inner `.modal-content`.
 | Active list tab | `.list-view-tab.active` | static |
 | Effort Wise toolbar | `#effort-wise-toolbar` | static — visible when Effort Wise tab active |
 | Effort Wise period label | `#effort-wise-period-label` | static |
+| Effort Wise effort spent pill | `#effort-wise-spent-pill`, `#effort-wise-spent-value`, `#effort-wise-capacity-value` | static — spent / capacity numbers (PTO-aware, no unit suffix) |
 | Effort Wise previous / next | `#effort-wise-prev-btn`, `#effort-wise-next-btn` (`.effort-wise-icon-btn`) | static |
 | Effort Wise date picker | `#effort-wise-goto-date` | static — hidden input; opened via calendar button |
 | Effort Wise calendar button | `#effort-wise-calendar-btn` (`.effort-wise-icon-btn`) | static |

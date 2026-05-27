@@ -286,7 +286,15 @@
       </div>
       <div id="effort-wise-toolbar" class="effort-wise-toolbar" hidden>
         <button type="button" id="effort-wise-prev-btn" class="effort-wise-icon-btn" title="Previous period" aria-label="Previous period"><svg width="12" height="12" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M9.78 4.22a.75.75 0 010 1.06L7.06 8l2.72 2.72a.75.75 0 11-1.06 1.06L5.47 8.53a.75.75 0 010-1.06l3.25-3.25a.75.75 0 011.06 0z"/></svg></button>
-        <span id="effort-wise-period-label" class="effort-wise-period-label"></span>
+        <div class="effort-wise-center">
+          <span id="effort-wise-period-label" class="effort-wise-period-label"></span>
+          <span id="effort-wise-spent-pill" class="effort-wise-spent-pill" title="Progress effort logged in this period">
+            <svg class="effort-wise-spent-icon" width="12" height="12" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M8 1.5a6.5 6.5 0 100 13 6.5 6.5 0 000-13zM7.25 4h1.5v4.25l2.75 1.6-.75 1.28-3.25-1.9V4z"/></svg>
+            <span id="effort-wise-spent-value" class="effort-wise-spent-value">0</span>
+            <span class="effort-wise-spent-sep" aria-hidden="true">/</span>
+            <span id="effort-wise-capacity-value" class="effort-wise-capacity-value">0</span>
+          </span>
+        </div>
         <button type="button" id="effort-wise-next-btn" class="effort-wise-icon-btn" title="Next period" aria-label="Next period"><svg width="12" height="12" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M6.22 4.22a.75.75 0 011.06 0l3.25 3.25a.75.75 0 010 1.06l-3.25 3.25a.75.75 0 01-1.06-1.06L8.94 8 6.22 5.28a.75.75 0 010-1.06z"/></svg></button>
         <span class="effort-wise-toolbar-sep" aria-hidden="true"></span>
         <input type="date" id="effort-wise-goto-date" class="effort-wise-goto-input" title="Go to date" aria-label="Go to date">

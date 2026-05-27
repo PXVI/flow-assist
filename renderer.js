@@ -6196,6 +6196,74 @@
     return { from: focus, to: focus };
   }
 
+  function formatEffortWiseDateLabel(ymd) {
+    var date = parseYMD(ymd);
+    if (!date) return ymd;
+    return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+  }
+
+  function getEffortWisePeriodLabel(focus, gran) {
+    var f = focus || state.effortWiseFocusDate || localTodayYmd();
+    var g = gran || state.effortWiseGranularity || 'day';
+    if (g === 'week') {
+      var weekRange = getWorkWeekRangeForDate(f, getSettings());
+      var weekDates = getWeekDates(f);
+      var a = formatEffortWiseDateLabel(weekDates[0] || weekRange.from);
+      var b = formatEffortWiseDateLabel(weekDates[6] || weekRange.to);
+      return a + ' – ' + b;
+    }
+    return formatEffortWiseDateLabel(f);
+  }
+
+  function getEffortWiseSpentHours() {
+    var range = getEffortWiseRange();
+    return sumProgressHoursInRangeForTasks(getTasks(), range.from, range.to);
+  }
+
+  /** Work capacity for the Effort Wise period (work days, full/partial PTO, settings hours/day). */
+  function getEffortWiseCapacityHours() {
+    var range = getEffortWiseRange();
+    var settings = getSettings();
+    if (state.effortWiseGranularity === 'week') {
+      return computeRangeCapacityHours(range.from, range.to, settings);
+    }
+    return computeDayCapacityHours(range.from, settings);
+  }
+
+  function formatEffortWiseHours(num) {
+    if (num == null || isNaN(num)) num = 0;
+    var v = Math.round(Number(num) * 10) / 10;
+    return v.toFixed(1).replace(/\.0$/, '');
+  }
+
+  function getEffortWiseSpentSummary() {
+    var spent = getEffortWiseSpentHours();
+    var cap = getEffortWiseCapacityHours();
+    return {
+      spent: spent,
+      cap: cap,
+      spentStr: formatEffortWiseHours(spent),
+      capStr: cap > 0 ? formatEffortWiseHours(cap) : '—',
+      status: topBarProductivitySpentStatus(spent, cap)
+    };
+  }
+
+  function syncEffortWiseSpentUi() {
+    var spentVal = $('effort-wise-spent-value');
+    var capVal = $('effort-wise-capacity-value');
+    var pill = document.querySelector('.effort-wise-spent-pill');
+    var sum = getEffortWiseSpentSummary();
+    if (spentVal) {
+      spentVal.textContent = sum.spentStr;
+      spentVal.className = 'effort-wise-spent-value top-bar-metric-spent top-bar-metric-spent--' + sum.status;
+    }
+    if (capVal) capVal.textContent = sum.capStr;
+    if (pill) {
+      pill.classList.toggle('effort-wise-spent-pill--empty', sum.spent <= 0 && sum.cap <= 0);
+      pill.title = sum.spentStr + ' / ' + sum.capStr;
+    }
+  }
+
   function entityMatchesEffortWiseRange(entity, from, to) {
     var ad = entity.assigned_date;
     if (ad && ad >= from && ad <= to) return true;
@@ -6222,21 +6290,12 @@
     var gran = state.effortWiseGranularity || 'day';
     var labelEl = $('effort-wise-period-label');
     var gotoEl = $('effort-wise-goto-date');
-    if (labelEl) {
-      if (gran === 'week') {
-        var weekRange = getWorkWeekRangeForDate(focus, getSettings());
-        var weekDates = getWeekDates(focus);
-        var a = formatCalendarDate(weekDates[0] || weekRange.from);
-        var b = formatCalendarDate(weekDates[6] || weekRange.to);
-        labelEl.textContent = a.dateMonthYear + ' – ' + b.dateMonthYear;
-      } else {
-        labelEl.textContent = formatCalendarDate(focus).dateMonthYear;
-      }
-    }
+    if (labelEl) labelEl.textContent = getEffortWisePeriodLabel(focus, gran);
     if (gotoEl) gotoEl.value = focus;
     toolbar.querySelectorAll('.effort-wise-granularity-btn').forEach(function (btn) {
       btn.classList.toggle('active', btn.getAttribute('data-effort-granularity') === gran);
     });
+    syncEffortWiseSpentUi();
   }
 
   function purgeEditorDraftsForTask(taskId) {
@@ -6452,16 +6511,17 @@
         return taskMatchesEffortWiseRange(t, ewRange.from, ewRange.to);
       }));
       var ewFocus = state.effortWiseFocusDate || localTodayYmd();
-      var ewPeriod;
-      if (state.effortWiseGranularity === 'week') {
-        var ewWeekDates = getWeekDates(ewFocus);
-        var ewA = formatCalendarDate(ewWeekDates[0] || ewRange.from);
-        var ewB = formatCalendarDate(ewWeekDates[6] || ewRange.to);
-        ewPeriod = ewA.dateMonthYear + ' – ' + ewB.dateMonthYear;
-      } else {
-        ewPeriod = formatCalendarDate(ewFocus).dateMonthYear;
+      var ewGran = state.effortWiseGranularity || 'day';
+      var ewPeriod = getEffortWisePeriodLabel(ewFocus, ewGran);
+      var ewSum = getEffortWiseSpentSummary();
+      var ewTaskWord = ewMatched.length === 1 ? 'task' : 'tasks';
+      if (headingEl) {
+        headingEl.innerHTML =
+          'Effort Wise — <span class="effort-wise-heading-period">' + escapeHtml(ewPeriod) + '</span>' +
+          ' <span class="effort-wise-heading-meta">(' + ewMatched.length + ' ' + ewTaskWord +
+          ' · <span class="effort-wise-heading-spent top-bar-metric-spent top-bar-metric-spent--' + ewSum.status + '">' +
+          escapeHtml(ewSum.spentStr) + '</span> / ' + escapeHtml(ewSum.capStr) + ')</span>';
       }
-      if (headingEl) headingEl.textContent = 'Effort Wise — ' + ewPeriod + ' (' + ewMatched.length + ')';
       var ewEmpty = (state.effortWiseGranularity === 'week')
         ? 'No tasks with progress or assignment for this week.'
         : 'No tasks with progress or assignment for this day.';

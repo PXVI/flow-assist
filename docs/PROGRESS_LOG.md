@@ -18,6 +18,8 @@ Write features and fixes, not file paths or symbol names.
 - Refined the Effort Wise date toolbar to match the list tab bar: compact pill layout, smaller navigation icons, and Day/Week toggles styled like the main filter tabs.
 - Fixed the Effort Wise date toolbar so it only appears on the Effort Wise list tab and hides when you switch to another tab or leave the list view.
 - Effort Wise week view now follows **Settings → Week starts on** for the displayed range, prev/next week navigation, date-picker jumps, and task filtering (e.g. Monday–Sunday when the week starts on Monday).
+- Effort Wise shows total progress effort logged for the selected day or week in a green summary pill (toolbar and list heading), with light green/cyan styling on the date toolbar.
+- Effort Wise dates use short month names; effort logged is shown as a number against work capacity (hours per work day minus full/partial PTO and non-work days) for that day or full work week, without unit labels.
 
 ### Fixed
 

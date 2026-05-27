@@ -1463,11 +1463,16 @@ body.sidebar-mode-collapsed .nav-btn-icon {
   gap: 4px;
   margin-bottom: 14px;
   padding: 3px;
-  background: var(--bg-surface);
-  border: 1px solid var(--border-muted);
+  background: linear-gradient(
+    135deg,
+    color-mix(in srgb, var(--accent-green) 10%, var(--bg-surface)) 0%,
+    color-mix(in srgb, var(--accent-cyan) 6%, var(--bg-surface)) 100%
+  );
+  border: 1px solid color-mix(in srgb, var(--accent-green-bright) 28%, var(--border-muted));
   border-radius: var(--radius-lg);
   width: fit-content;
   max-width: 100%;
+  box-shadow: 0 1px 4px color-mix(in srgb, var(--accent-green) 12%, transparent);
 }
 
 .effort-wise-toolbar-sep {
@@ -1495,8 +1500,8 @@ body.sidebar-mode-collapsed .nav-btn-icon {
 }
 
 .effort-wise-icon-btn:hover {
-  color: var(--text-secondary);
-  background: rgba(255, 255, 255, 0.05);
+  color: var(--accent-cyan);
+  background: color-mix(in srgb, var(--accent-cyan) 12%, transparent);
 }
 
 .effort-wise-icon-btn:focus-visible {
@@ -1504,18 +1509,91 @@ body.sidebar-mode-collapsed .nav-btn-icon {
   box-shadow: var(--shadow-focus);
 }
 
+.effort-wise-center {
+  display: inline-flex;
+  align-items: center;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 6px;
+  padding: 0 4px;
+  max-width: min(100%, 420px);
+}
+
 .effort-wise-period-label {
   font-size: var(--font-sm);
   font-weight: 600;
-  color: var(--text-primary);
-  padding: 0 6px;
+  color: var(--accent-blue);
+  padding: 0 2px;
   min-width: 0;
-  max-width: 220px;
   text-align: center;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
   line-height: 28px;
+}
+
+.effort-wise-spent-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 10px;
+  border-radius: var(--radius-pill);
+  background: color-mix(in srgb, var(--accent-green-bright) 16%, var(--bg-surface-raised));
+  border: 1px solid color-mix(in srgb, var(--accent-green-bright) 38%, transparent);
+  line-height: 1.2;
+  white-space: nowrap;
+}
+
+.effort-wise-spent-pill--empty {
+  background: color-mix(in srgb, var(--text-muted) 12%, var(--bg-surface-raised));
+  border-color: var(--border-muted);
+}
+
+.effort-wise-spent-pill--empty .effort-wise-spent-icon,
+.effort-wise-spent-pill--empty .effort-wise-spent-value {
+  color: var(--text-muted);
+}
+
+.effort-wise-spent-icon {
+  flex-shrink: 0;
+  color: var(--accent-green-bright);
+}
+
+.effort-wise-spent-value {
+  font-size: var(--font-sm);
+  font-weight: 700;
+}
+
+.effort-wise-spent-pill .effort-wise-spent-value.top-bar-metric-spent {
+  padding: 1px 4px;
+  border-radius: 4px;
+}
+
+.effort-wise-spent-sep {
+  font-size: var(--font-sm);
+  font-weight: 500;
+  color: var(--text-muted);
+}
+
+.effort-wise-capacity-value {
+  font-size: var(--font-sm);
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+
+.effort-wise-heading-period {
+  color: var(--accent-blue);
+}
+
+.effort-wise-heading-meta {
+  font-size: var(--font-base);
+  font-weight: 500;
+  color: var(--text-muted);
+}
+
+.effort-wise-heading-spent {
+  font-weight: 700;
+  color: var(--accent-green-bright);
 }
 
 .effort-wise-goto-input {
