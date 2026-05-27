@@ -49,7 +49,9 @@
     /** 0=Sun … 6=Sat — first column of calendar month / week strip / summary default week */
     weekStartDay: 1,
     /** HTML/CSS summary export: hide Concerns heading and "None" when a row has no in-range concerns. */
-    omitNoConcernsInSummary: true
+    omitNoConcernsInSummary: true,
+    /** All Tasks view: Done section completed list collapsed when true. */
+    doneTasksListHidden: false
   };
 
   var TASK_DIFFICULTY_LEVELS = ['Very Easy', 'Easy', 'Moderate', 'Hard', 'Very Hard'];
@@ -1673,6 +1675,7 @@
     } else {
       state.data.settings.omitNoConcernsInSummary = true;
     }
+    state.data.settings.doneTasksListHidden = !!state.data.settings.doneTasksListHidden;
     mergeRelaxSettingsInto(state.data.settings);
   }
 
@@ -6477,6 +6480,27 @@
     persistEditorSessionToStorage();
   }
 
+  function isDoneTasksListHidden() {
+    return !!getSettings().doneTasksListHidden;
+  }
+
+  function setDoneTasksListHidden(hidden) {
+    state.data.settings.doneTasksListHidden = !!hidden;
+    syncDoneTasksListVisibility();
+    return save();
+  }
+
+  function syncDoneTasksListVisibility() {
+    var listEl = completedTaskListEl;
+    var btn = $('completed-tasks-hide-btn');
+    var hidden = isDoneTasksListHidden();
+    if (listEl) listEl.hidden = hidden;
+    if (btn) {
+      btn.textContent = hidden ? 'Unhide' : 'Hide';
+      btn.setAttribute('aria-expanded', hidden ? 'false' : 'true');
+    }
+  }
+
   function renderList() {
     captureTaskListEditorDrafts();
     var tasks = getTasks();
@@ -6560,6 +6584,7 @@
           : '<p class="empty-state">No done tasks.</p>';
         completedTaskListEl.querySelectorAll('.task-card').forEach(bindTaskCardEvents);
       }
+      syncDoneTasksListVisibility();
       if (addSection) addSection.style.display = '';
       if (completedSection) completedSection.style.display = '';
       separators.forEach(function (s) { s.style.display = ''; });
@@ -9929,6 +9954,12 @@
       addNewTaskBtn.addEventListener('click', function () {
         addNewTaskBlock.classList.toggle('task-block-collapsed');
         addNewTaskBtn.classList.toggle('active', !addNewTaskBlock.classList.contains('task-block-collapsed'));
+      });
+    }
+    var completedTasksHideBtn = $('completed-tasks-hide-btn');
+    if (completedTasksHideBtn) {
+      completedTasksHideBtn.addEventListener('click', function () {
+        setDoneTasksListHidden(!isDoneTasksListHidden());
       });
     }
     var addTaskCatContainer = $('add-task-category-dropdown');

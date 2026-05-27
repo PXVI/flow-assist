@@ -7,6 +7,7 @@ Write features and fixes, not file paths or symbol names.
 
 ### Added
 
+- Added **Hide** / **Unhide** beside the Done heading on the All Tasks list to collapse or show completed tasks without leaving the section; the choice is saved in the profile and restored when you reopen the app or switch profiles.
 - Added **Effort Wise** list tab (green) with a date/week toolbar: browse tasks and sub-tasks that had progress logged or were assigned on the selected day or work week, with previous/next navigation, a calendar date picker, and full in-list editing.
 - Added Settings option **Omit no concerns in summary** (on by default) so HTML/CSS summary export hides the Concerns heading and “None” when a task or sub-task has no concerns in the date range; rows with concerns are unchanged.
 - Added top bar Date pill and Today/Week productivity pills showing logged effort versus planned capacity in hours.
@@ -15,6 +16,8 @@ Write features and fixes, not file paths or symbol names.
 
 ### Changed
 
+- Moved **Add New Task** to the top-right of the main list heading row (next to Main Tasks List and Sort) on the All Tasks view; the add-task form opens directly under the heading, above the active task list.
+- Done list **Hide** / **Unhide** is stored per profile in settings (not session-only).
 - Refined the Effort Wise date toolbar to match the list tab bar: compact pill layout, smaller navigation icons, and Day/Week toggles styled like the main filter tabs.
 - Fixed the Effort Wise date toolbar so it only appears on the Effort Wise list tab and hides when you switch to another tab or leave the list view.
 - Effort Wise week view now follows **Settings → Week starts on** for the displayed range, prev/next week navigation, date-picker jumps, and task filtering (e.g. Monday–Sunday when the week starts on Monday).

@@ -1,8 +1,9 @@
 'use strict';
 
 const { test, expect } = require('@playwright/test');
-const { launchFlowAssist, getMainWindowPage } = require('../helpers/electron-app');
+const { launchFlowAssist, getMainWindowPage, DEFAULT_E2E_PROFILE } = require('../helpers/electron-app');
 const { waitForProfileLoaded } = require('../helpers/wait-for-app');
+const { copyProfileForMutation } = require('../helpers/profile-copy');
 
 test.describe('List view — tabs and sort', () => {
   test('list filter tabs switch without error', async () => {
@@ -116,6 +117,69 @@ test.describe('List view — tabs and sort', () => {
 
       await expect(page.locator('section.completed-tasks-section')).toBeVisible();
       await expect(page.locator('#completed-task-list')).toBeAttached();
+    } finally {
+      await app.close();
+    }
+  });
+
+  test('Add New Task button is in main heading row', async () => {
+    const app = await launchFlowAssist();
+    try {
+      const page = await getMainWindowPage(app);
+      await waitForProfileLoaded(page);
+
+      const btn = page.locator('#add-new-task-btn');
+      await expect(btn).toBeVisible();
+      await expect(page.locator('.main-tasks-heading-row')).toContainText('Add New Task');
+      await expect(btn.locator('xpath=ancestor::div[contains(@class,"main-tasks-heading-row")]')).toHaveCount(1);
+    } finally {
+      await app.close();
+    }
+  });
+
+  test('Done Hide persists in profile after reload', async () => {
+    const mutPath = copyProfileForMutation(DEFAULT_E2E_PROFILE, 'done-hide-persist');
+    const app = await launchFlowAssist({ profilePath: mutPath });
+    try {
+      const page = await getMainWindowPage(app);
+      await waitForProfileLoaded(page);
+
+      const hideBtn = page.locator('#completed-tasks-hide-btn');
+      const list = page.locator('#completed-task-list');
+
+      await hideBtn.click();
+      await expect(hideBtn).toHaveText('Unhide');
+      await expect(list).toBeHidden();
+
+      await page.reload();
+      await waitForProfileLoaded(page);
+
+      await expect(hideBtn).toHaveText('Unhide');
+      await expect(list).toBeHidden();
+    } finally {
+      await app.close();
+    }
+  });
+
+  test('Done Hide toggles completed task list visibility', async () => {
+    const app = await launchFlowAssist();
+    try {
+      const page = await getMainWindowPage(app);
+      await waitForProfileLoaded(page);
+
+      const hideBtn = page.locator('#completed-tasks-hide-btn');
+      const list = page.locator('#completed-task-list');
+
+      await expect(hideBtn).toHaveText('Hide');
+      await expect(list).toBeVisible();
+
+      await hideBtn.click();
+      await expect(hideBtn).toHaveText('Unhide');
+      await expect(list).toBeHidden();
+
+      await hideBtn.click();
+      await expect(hideBtn).toHaveText('Hide');
+      await expect(list).toBeVisible();
     } finally {
       await app.close();
     }

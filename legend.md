@@ -238,13 +238,14 @@ All modals: outer `#…-modal.modal`, `.modal-backdrop`, inner `.modal-content`.
 | Effort Wise toolbar separator | `.effort-wise-toolbar-sep` | static |
 | Effort Wise Day / Week | `.effort-wise-granularity-btn[data-effort-granularity]` | static — `day`, `week` |
 | Main tasks heading row | `.main-tasks-heading-row` | static |
+| Main tasks heading start (title + sort) | `.main-tasks-heading-start` | static |
 | Main tasks heading | `.main-tasks-heading` | static — "Main Tasks List" |
+| Add New Task toggle | `#add-new-task-btn` | static — top-right of `.main-tasks-heading-row` |
 | Main task sort button | `#main-task-filter-btn` | static |
 | Main task sort menu | `#main-task-filter-menu` | static |
 | Sort options | `.filter-option[data-sort-by][data-sort-dir]` | static — date_added, priority, eta |
 | Active task list container | `#task-list` | static |
 | Add task separator | `.add-task-separator` | static |
-| Add New Task toggle | `#add-new-task-btn` | static |
 | Add new task form block | `#add-new-task-block` | static — collapsible |
 | Add task — Title | `#task-title` | static |
 | Add task — Project | `#task-project` | static |
@@ -259,7 +260,9 @@ All modals: outer `#…-modal.modal`, `.modal-backdrop`, inner `.modal-content`.
 | Add task — Bug ID | `#task-bug` | static |
 | Add Task submit | `#add-task-btn` | static |
 | Done section | `.completed-tasks-section` | static |
+| Done heading row | `.completed-tasks-heading-row` | static |
 | Done heading | `.completed-tasks-heading` | static |
+| Done list Hide / Unhide | `#completed-tasks-hide-btn` | static |
 | Completed task list | `#completed-task-list` | static |
 
 ---

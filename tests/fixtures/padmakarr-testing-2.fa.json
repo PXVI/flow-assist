@@ -6045,7 +6045,8 @@
       5
     ],
     "weekStartDay": 1,
-    "omitNoConcernsInSummary": true
+    "omitNoConcernsInSummary": true,
+    "doneTasksListHidden": false
   },
   "notes": {
     "items": [
