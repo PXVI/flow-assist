@@ -131,6 +131,36 @@ test.describe('Rich WYSIWYG on all formatted fields', () => {
     }
   });
 
+  test('task progress add: description box clears after submit', async () => {
+    const mutPath = copyProfileForMutation(DEFAULT_E2E_PROFILE, 'rich-wysiwyg-prog-clear');
+    const app = await launchFlowAssist({ profilePath: mutPath });
+    try {
+      const page = await getMainWindowPage(app);
+      await waitForProfileLoaded(page);
+      await navigateToListView(page);
+
+      const card = page.locator('#task-list .task-card').filter({ hasText: 'Mega parent' }).first();
+      await card.locator('.task-bar').click();
+      const progIn = card.locator(':scope > .task-body > .task-progress-block .progress-add .progress-text-in.rich-markdown-wysiwyg');
+      const note = 'ClearAfterAdd ' + Date.now();
+      await progIn.evaluate(function (el, text) {
+        el.innerHTML = '';
+        el.focus();
+        el.textContent = text;
+      }, note);
+      await card.locator('.add-progress-btn').click();
+      await expect(card.locator('.task-progress-block .progress-list .progress-text').filter({ hasText: note })).toBeVisible();
+      const empty = await progIn.evaluate(function (el) {
+        var t = el.textContent.replace(/\u00a0/g, ' ').replace(/\u200b/g, '').trim();
+        if (t) return false;
+        return !el.querySelector('ul, ol, pre, li');
+      });
+      expect(empty).toBe(true);
+    } finally {
+      await app.close();
+    }
+  });
+
   test('task concern log: description with bold saves', async () => {
     const mutPath = copyProfileForMutation(DEFAULT_E2E_PROFILE, 'rich-wysiwyg-concern');
     const app = await launchFlowAssist({ profilePath: mutPath });
@@ -158,6 +188,104 @@ test.describe('Rich WYSIWYG on all formatted fields', () => {
       });
       await block.locator('.log-concern-btn').click();
       await expect(block.locator('.concern-description strong, .concern-description b').first()).toContainText('RiskNote');
+    } finally {
+      await app.close();
+    }
+  });
+
+  test('progress inline edit: edit box has border and primary text color', async () => {
+    const mutPath = copyProfileForMutation(DEFAULT_E2E_PROFILE, 'rich-wysiwyg-prog-edit-style');
+    const app = await launchFlowAssist({ profilePath: mutPath });
+    try {
+      const page = await getMainWindowPage(app);
+      await waitForProfileLoaded(page);
+      await navigateToListView(page);
+
+      const card = page.locator('#task-list .task-card').filter({ hasText: 'Mega parent' }).first();
+      await card.locator('.task-bar').click();
+      const progIn = card.locator(':scope > .task-body > .task-progress-block .progress-add .progress-text-in.rich-markdown-wysiwyg');
+      const note = 'StyleCheck ' + Date.now();
+      await progIn.evaluate(function (el, text) {
+        el.innerHTML = '';
+        el.focus();
+        el.textContent = text;
+      }, note);
+      await card.locator('.add-progress-btn').click();
+      const li = card.locator('.task-progress-block .progress-list .progress-item').filter({ hasText: note }).first();
+      await li.locator('.btn-edit-progress').click();
+      const editEl = li.locator('.progress-edit-text.rich-markdown-wysiwyg');
+      await expect(editEl).toBeVisible();
+      const styles = await editEl.evaluate(function (el) {
+        var cs = window.getComputedStyle(el);
+        var probe = document.createElement('span');
+        probe.style.color = 'var(--text-primary)';
+        document.body.appendChild(probe);
+        var textPrimary = window.getComputedStyle(probe).color;
+        probe.style.color = 'var(--text-faint)';
+        var textFaint = window.getComputedStyle(probe).color;
+        document.body.removeChild(probe);
+        return {
+          borderTopWidth: cs.borderTopWidth,
+          borderTopStyle: cs.borderTopStyle,
+          color: cs.color,
+          textPrimary: textPrimary,
+          textFaint: textFaint
+        };
+      });
+      expect(styles.borderTopWidth).not.toBe('0px');
+      expect(styles.borderTopStyle).not.toBe('none');
+      expect(styles.color).toBe(styles.textPrimary);
+      expect(styles.color).not.toBe(styles.textFaint);
+    } finally {
+      await app.close();
+    }
+  });
+
+  test('subtask progress inline edit: edit box has border and primary text color', async () => {
+    const mutPath = copyProfileForMutation(DEFAULT_E2E_PROFILE, 'rich-wysiwyg-sub-prog-edit-style');
+    const app = await launchFlowAssist({ profilePath: mutPath });
+    try {
+      const page = await getMainWindowPage(app);
+      await waitForProfileLoaded(page);
+      await navigateToListView(page);
+
+      const card = page.locator('#task-list .task-card').filter({ hasText: 'Mega parent' }).first();
+      await card.locator('.task-bar').click();
+      const sub = card.locator('.subtask-card').first();
+      await sub.locator('.subtask-bar').click();
+      const progIn = sub.locator('.subtask-progress-text.rich-markdown-wysiwyg');
+      const note = 'SubStyleCheck ' + Date.now();
+      await progIn.evaluate(function (el, text) {
+        el.innerHTML = '';
+        el.focus();
+        el.textContent = text;
+      }, note);
+      await sub.locator('.add-subtask-progress-btn').click();
+      const li = sub.locator('.subtask-progress-list .progress-item').filter({ hasText: note }).first();
+      await li.locator('.btn-edit-subtask-progress').click();
+      const editEl = li.locator('.progress-edit-text.rich-markdown-wysiwyg');
+      await expect(editEl).toBeVisible();
+      const styles = await editEl.evaluate(function (el) {
+        var cs = window.getComputedStyle(el);
+        var probe = document.createElement('span');
+        probe.style.color = 'var(--text-primary)';
+        document.body.appendChild(probe);
+        var textPrimary = window.getComputedStyle(probe).color;
+        probe.style.color = 'var(--text-faint)';
+        var textFaint = window.getComputedStyle(probe).color;
+        document.body.removeChild(probe);
+        return {
+          borderTopWidth: cs.borderTopWidth,
+          borderTopStyle: cs.borderTopStyle,
+          color: cs.color,
+          textPrimary: textPrimary,
+          textFaint: textFaint
+        };
+      });
+      expect(styles.borderTopWidth).not.toBe('0px');
+      expect(styles.borderTopStyle).not.toBe('none');
+      expect(styles.color).toBe(styles.textPrimary);
+      expect(styles.color).not.toBe(styles.textFaint);
     } finally {
       await app.close();
     }
@@ -313,6 +441,38 @@ test.describe('Rich WYSIWYG on all formatted fields', () => {
       const html = await rowText.innerHTML();
       expect(html).toMatch(/<\s*(?:b|strong)\b/i);
       expect(html).not.toMatch(/\*\*SubProgBold/);
+    } finally {
+      await app.close();
+    }
+  });
+
+  test('subtask progress add: description box clears after submit', async () => {
+    const mutPath = copyProfileForMutation(DEFAULT_E2E_PROFILE, 'rich-wysiwyg-sub-prog-clear');
+    const app = await launchFlowAssist({ profilePath: mutPath });
+    try {
+      const page = await getMainWindowPage(app);
+      await waitForProfileLoaded(page);
+      await navigateToListView(page);
+
+      const card = page.locator('#task-list .task-card').filter({ hasText: 'Mega parent' }).first();
+      await card.locator('.task-bar').click();
+      const sub = card.locator('.subtask-card').first();
+      await sub.locator('.subtask-bar').click();
+      const progIn = sub.locator('.subtask-progress-text.rich-markdown-wysiwyg');
+      const note = 'SubClearAfterAdd ' + Date.now();
+      await progIn.evaluate(function (el, text) {
+        el.innerHTML = '';
+        el.focus();
+        el.textContent = text;
+      }, note);
+      await sub.locator('.add-subtask-progress-btn').click();
+      await expect(sub.locator('.subtask-progress-list .progress-text').filter({ hasText: note })).toBeVisible();
+      const empty = await progIn.evaluate(function (el) {
+        var t = el.textContent.replace(/\u00a0/g, ' ').replace(/\u200b/g, '').trim();
+        if (t) return false;
+        return !el.querySelector('ul, ol, pre, li');
+      });
+      expect(empty).toBe(true);
     } finally {
       await app.close();
     }

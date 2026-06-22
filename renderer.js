@@ -993,6 +993,10 @@
     summaryGenerated: false,
     lastSummaryMeta: null,
     listFilter: 'all',
+    /** Session-only full-text filter for list view task cards. */
+    listSearchQuery: '',
+    /** Session-only full-text filter for Notes board. */
+    notesSearchQuery: '',
     /** Effort Wise tab: anchor date (YYYY-MM-DD) and day/week granularity (session-only). */
     effortWiseFocusDate: new Date().toISOString().slice(0, 10),
     effortWiseGranularity: 'day',
@@ -1914,6 +1918,44 @@
     return true;
   }
 
+  function notesSearchQueryActive() {
+    return parseListSearchQuery(state.notesSearchQuery).active;
+  }
+
+  function noteItemSearchHaystack(item) {
+    var parts = [];
+    appendSearchableParts(parts, item.title);
+    appendSearchableParts(parts, item.body);
+    (item.checklist || []).forEach(function (row) {
+      appendSearchableParts(parts, row.text);
+    });
+    (item.reminders || []).forEach(function (r) {
+      appendSearchableParts(parts, r.label);
+    });
+    return parts.join(' ');
+  }
+
+  function noteMatchesNotesSearch(item, parsed) {
+    if (!parsed || !parsed.active) return true;
+    return textMatchesListSearchQuery(noteItemSearchHaystack(item), parsed);
+  }
+
+  function filterNotesBySearch(items) {
+    var parsed = parseListSearchQuery(state.notesSearchQuery);
+    if (!parsed.active) return items;
+    return items.filter(function (it) { return noteMatchesNotesSearch(it, parsed); });
+  }
+
+  function syncNotesSearchUi() {
+    var input = document.getElementById('notes-search-input');
+    var clearBtn = document.getElementById('notes-search-clear-btn');
+    var q = state.notesSearchQuery || '';
+    if (input && document.activeElement !== input && input.value !== q) {
+      input.value = q;
+    }
+    if (clearBtn) clearBtn.hidden = !parseListSearchQuery(q).active;
+  }
+
   function findNoteItemById(noteId) {
     var items = state.data.notes && state.data.notes.items ? state.data.notes.items : [];
     for (var i = 0; i < items.length; i++) {
@@ -1997,6 +2039,8 @@
   }
 
   var notesSaveTimer = null;
+  var listSearchTimer = null;
+  var notesSearchTimer = null;
 
   function scheduleNotesSave() {
     if (notesSaveTimer) clearTimeout(notesSaveTimer);
@@ -2610,9 +2654,17 @@
     var items = allItems.filter(function (it) {
       return noteMatchesDateFilter(it, f);
     });
-    board.innerHTML = items.map(function (it) {
-      return renderNoteCardHtml(it, { compact: true });
-    }).join('');
+    items = filterNotesBySearch(items);
+    syncNotesSearchUi();
+    if (!items.length) {
+      board.innerHTML = notesSearchQueryActive()
+        ? '<p class="empty-state notes-empty-state">No notes match your search.</p>'
+        : '';
+    } else {
+      board.innerHTML = items.map(function (it) {
+        return renderNoteCardHtml(it, { compact: true });
+      }).join('');
+    }
     bindRichFormatToolbars(board);
   }
 
@@ -2821,6 +2873,29 @@
     syncNotesFilterPanelFromState();
   }
 
+  function wireNotesSearchControls() {
+    var input = document.getElementById('notes-search-input');
+    var clearBtn = document.getElementById('notes-search-clear-btn');
+    if (!input || input.dataset.wiredSearch === '1') return;
+    input.dataset.wiredSearch = '1';
+    input.addEventListener('input', function () {
+      if (notesSearchTimer) clearTimeout(notesSearchTimer);
+      notesSearchTimer = setTimeout(function () {
+        notesSearchTimer = null;
+        state.notesSearchQuery = input.value;
+        renderNotes();
+      }, 200);
+    });
+    if (clearBtn) {
+      clearBtn.addEventListener('click', function () {
+        state.notesSearchQuery = '';
+        input.value = '';
+        renderNotes();
+      });
+    }
+    syncNotesSearchUi();
+  }
+
   function wireNotesToolbar() {
     var addNote = document.getElementById('notes-add-note-btn');
     var addTodo = document.getElementById('notes-add-todo-btn');
@@ -2855,6 +2930,7 @@
     }
     syncNotesGridColumnsUi();
     wireNotesFilterControls();
+    wireNotesSearchControls();
     bindNotesEventsOnce();
     bindNotesModalEventsOnce();
     wireNotesReminderModalEventsOnce();
@@ -2944,6 +3020,7 @@
         task.status_changes.push({ id: generateId(), status: nextNorm, date: today });
         enforceStatusChangeDateOrder(task.status_changes);
         syncTaskFromStatusChanges(task);
+        if (nextNorm === 'Done' || nextNorm === 'Dropped') collapseTaskCard(id);
       } else {
         task.status = nextNorm === 'Done' ? 'Done' : (nextNorm === 'Dropped' ? 'Dropped' : nextNorm);
       }
@@ -3043,7 +3120,7 @@
     return save().then(function () { render(); });
   }
 
-  function addProgressUpdate(taskId, payload) {
+  function addProgressUpdate(taskId, payload, onValidated) {
     var task = state.data.tasks.find(function (t) { return t.id === taskId; });
     if (!task) return Promise.resolve();
     var progressDate = payload.date_added || new Date().toISOString().slice(0, 10);
@@ -3052,6 +3129,8 @@
       showDateValidationAlert(progressErr);
       return Promise.resolve(false);
     }
+    if (typeof onValidated === 'function') onValidated();
+    pruneTaskDraftProgressFields(taskId);
     if (!task.progress_updates) task.progress_updates = [];
     task.progress_updates.push({
       id: generateId(),
@@ -3156,6 +3235,7 @@
         s.status_changes.push({ id: generateId(), status: nextNorm, date: todayS });
         enforceStatusChangeDateOrder(s.status_changes);
         syncSubtaskFromStatusChanges(s);
+        if (nextNorm === 'Done' || nextNorm === 'Dropped') collapseSubtaskCard(taskId, subtaskId);
       } else {
         s.status = nextNorm === 'Done' ? 'Done' : (nextNorm === 'Dropped' ? 'Dropped' : nextNorm);
       }
@@ -3181,7 +3261,7 @@
     return save().then(function () { render(); });
   }
 
-  function addSubtaskProgressUpdate(taskId, subtaskId, payload) {
+  function addSubtaskProgressUpdate(taskId, subtaskId, payload, onValidated) {
     var task = state.data.tasks.find(function (t) { return t.id === taskId; });
     if (!task || !task.subtasks) return Promise.resolve();
     var s = task.subtasks.find(function (x) { return x.id === subtaskId; });
@@ -3192,6 +3272,8 @@
       showDateValidationAlert(progressErr);
       return Promise.resolve(false);
     }
+    if (typeof onValidated === 'function') onValidated();
+    pruneSubtaskDraftProgressFields(taskId, subtaskId);
     if (!s.progress_updates) s.progress_updates = [];
     s.progress_updates.push({
       id: generateId(),
@@ -3555,6 +3637,137 @@
     }
   }
 
+  function wysiwygCaretRangeFromPoint(x, y) {
+    if (document.caretRangeFromPoint) return document.caretRangeFromPoint(x, y);
+    if (document.caretPositionFromPoint) {
+      var pos = document.caretPositionFromPoint(x, y);
+      if (!pos) return null;
+      var r = document.createRange();
+      r.setStart(pos.offsetNode, pos.offset);
+      r.collapse(true);
+      return r;
+    }
+    return null;
+  }
+
+  function wysiwygIsWordChar(ch) {
+    return !!ch && /[0-9A-Za-z_\u00C0-\u024F'-]/.test(ch);
+  }
+
+  function wysiwygRangeForWordAtCaret(editor, range) {
+    if (!range || !editor.contains(range.startContainer)) return null;
+    var node = range.startContainer;
+    var offset = range.startOffset;
+    if (node.nodeType !== 3) {
+      if (node.nodeType === 1 && node.childNodes.length) {
+        var child = node.childNodes[Math.min(offset, node.childNodes.length - 1)];
+        if (child && child.nodeType === 3) {
+          node = child;
+          offset = Math.min(offset, node.length);
+        } else {
+          return range.cloneRange();
+        }
+      } else {
+        return range.cloneRange();
+      }
+    }
+    var text = node.textContent || '';
+    var start = offset;
+    var end = offset;
+    while (start > 0 && wysiwygIsWordChar(text.charAt(start - 1))) start--;
+    while (end < text.length && wysiwygIsWordChar(text.charAt(end))) end++;
+    var out = document.createRange();
+    out.setStart(node, start);
+    out.setEnd(node, end);
+    return out;
+  }
+
+  function wysiwygRangeForWordAtPoint(editor, x, y) {
+    var caret = wysiwygCaretRangeFromPoint(x, y);
+    if (!caret) return null;
+    return wysiwygRangeForWordAtCaret(editor, caret);
+  }
+
+  function wysiwygIsLineBreakNode(n) {
+    return n && n.nodeType === 1 && n.nodeName === 'BR';
+  }
+
+  function wysiwygRangeForVisualLine(editor, x, y) {
+    var caret = wysiwygCaretRangeFromPoint(x, y);
+    if (!caret || !editor.contains(caret.startContainer)) return null;
+    var block = caret.startContainer;
+    if (block.nodeType === 3) block = block.parentNode;
+    while (block && block.parentNode !== editor) block = block.parentNode;
+    if (!block || block === editor) block = caret.startContainer;
+    if (block.nodeType === 3) block = block.parentNode;
+    var startNode = block;
+    var endNode = block;
+    while (startNode.previousSibling && !wysiwygIsLineBreakNode(startNode.previousSibling)) {
+      startNode = startNode.previousSibling;
+    }
+    while (endNode.nextSibling && !wysiwygIsLineBreakNode(endNode.nextSibling)) {
+      endNode = endNode.nextSibling;
+    }
+    var lineRange = document.createRange();
+    if (startNode === editor) {
+      lineRange.selectNodeContents(editor);
+    } else {
+      lineRange.setStartBefore(startNode);
+      lineRange.setEndAfter(endNode);
+    }
+    return lineRange;
+  }
+
+  function bindRichWysiwygSelectionGuards(editor) {
+    if (!editor || editor.getAttribute('data-wysiwyg-sel-guard') === '1') return;
+    editor.setAttribute('data-wysiwyg-sel-guard', '1');
+    editor.addEventListener('mousedown', function (e) {
+      if (e.button !== 0 || e.detail !== 3) return;
+      e.preventDefault();
+      var lineRange = wysiwygRangeForVisualLine(editor, e.clientX, e.clientY);
+      if (!lineRange) return;
+      var sel = window.getSelection();
+      sel.removeAllRanges();
+      sel.addRange(lineRange);
+    }, true);
+    editor.addEventListener('dblclick', function (e) {
+      e.preventDefault();
+      var wordRange = wysiwygRangeForWordAtPoint(editor, e.clientX, e.clientY);
+      if (!wordRange) return;
+      var sel = window.getSelection();
+      sel.removeAllRanges();
+      sel.addRange(wordRange);
+    }, true);
+  }
+
+  function bindRichWysiwygPlainTextAfterInline(editor) {
+    if (!editor || editor.getAttribute('data-wysiwyg-plain-after-inline') === '1') return;
+    editor.setAttribute('data-wysiwyg-plain-after-inline', '1');
+    editor.addEventListener('beforeinput', function (e) {
+      if (!e.data || e.inputType !== 'insertText') return;
+      var sel = window.getSelection();
+      if (!sel || !sel.rangeCount || !sel.isCollapsed) return;
+      var range = sel.getRangeAt(0);
+      var node = range.startContainer;
+      if (node.nodeType !== 3) return;
+      var parent = node.parentElement;
+      if (!parent || !/^(B|STRONG|EM|I|U)$/i.test(parent.nodeName)) return;
+      if (range.startOffset !== node.length) return;
+      var fmt = parent.nodeName;
+      var cmd = fmt === 'U' ? 'underline' : (fmt === 'EM' || fmt === 'I' ? 'italic' : 'bold');
+      var typingActive = false;
+      try { typingActive = document.queryCommandState(cmd); } catch (qe) { /* ignore */ }
+      if (typingActive) return;
+      e.preventDefault();
+      var textNode = document.createTextNode(e.data);
+      parent.parentNode.insertBefore(textNode, parent.nextSibling);
+      range.setStart(textNode, textNode.length);
+      range.collapse(true);
+      sel.removeAllRanges();
+      sel.addRange(range);
+    });
+  }
+
   function bindRichFormatToolbars(root) {
     if (!root || !root.querySelectorAll) return;
     root.querySelectorAll('.rich-format-toolbar').forEach(function (toolbar) {
@@ -3565,6 +3778,8 @@
       var ta = wrap && wrap.querySelector('textarea');
       if (wysEditor && wysWrap) {
         bindRichMarkdownWysiwygPaste(wysEditor);
+        bindRichWysiwygSelectionGuards(wysEditor);
+        bindRichWysiwygPlainTextAfterInline(wysEditor);
         ensureWysiwygToolbarGlobalSelectionSync();
         var syncEd = function () {
           scheduleRichWysiwygToolbarSync(wysEditor);
@@ -3573,7 +3788,8 @@
           wysEditor.addEventListener(ev, syncEd);
         });
         toolbar.querySelectorAll('[data-rich-cmd]').forEach(function (btn) {
-          btn.addEventListener('click', function (e) {
+          btn.addEventListener('mousedown', function (e) {
+            if (e.button !== 0) return;
             e.preventDefault();
             e.stopPropagation();
             if (wysEditor.getAttribute('contenteditable') === 'false') {
@@ -3807,40 +4023,75 @@
     return !root.querySelector('ul, ol, pre, li');
   }
 
-  var __faRichPlaceholderCaretBound = false;
-  /** Empty rich fields: first mousedown places caret at start (default is often end after lone &lt;br&gt;). */
-  function ensureRichPlaceholderCaretFixGlobalOnce() {
-    if (__faRichPlaceholderCaretBound) return;
-    __faRichPlaceholderCaretBound = true;
+  /** Place a collapsed caret in an empty rich editor (before lone &lt;br&gt;, not inside it). */
+  function placeCaretInEmptyRichWysiwyg(el) {
+    if (!el) return;
+    try {
+      el.focus();
+    } catch (fe) { /* ignore */ }
+    try {
+      var sel = window.getSelection();
+      if (!sel) return;
+      var r = document.createRange();
+      var br = null;
+      for (var i = 0; i < el.childNodes.length; i++) {
+        if (el.childNodes[i].nodeName === 'BR') {
+          br = el.childNodes[i];
+          break;
+        }
+      }
+      if (br && richMarkdownWysiwygIsVisuallyEmpty(el)) {
+        r.setStartBefore(br);
+      } else if (el.firstChild) {
+        r.setStart(el.firstChild, 0);
+      } else {
+        r.setStart(el, 0);
+      }
+      r.collapse(true);
+      sel.removeAllRanges();
+      sel.addRange(r);
+    } catch (err) { /* ignore */ }
+  }
+
+  var __faRichWysiwygClickFocusBound = false;
+  /** Keep caret/focus in rich editors after click (Electron can blur on mouseup when field already has text). */
+  function ensureRichWysiwygEditorClickFocusGlobalOnce() {
+    if (__faRichWysiwygClickFocusBound) return;
+    __faRichWysiwygClickFocusBound = true;
     document.addEventListener(
-      'mousedown',
+      'mouseup',
       function (e) {
         if (e.button !== 0) return;
         var el = e.target.closest && e.target.closest('.rich-markdown-wysiwyg[data-placeholder]');
-        if (!el || !el.classList || !el.classList.contains('rich-markdown-wysiwyg')) return;
+        if (!el || !el.isConnected) return;
         if (el.getAttribute('contenteditable') === 'false') return;
         if (!el.isContentEditable && el.getAttribute('contenteditable') !== 'true') return;
-        if (!richMarkdownWysiwygIsVisuallyEmpty(el)) return;
-        e.preventDefault();
-        try {
-          el.focus();
-        } catch (fe) {
-          /* ignore */
-        }
-        try {
+        var x = e.clientX;
+        var y = e.clientY;
+        requestAnimationFrame(function () {
+          if (!el.isConnected) return;
           var sel = window.getSelection();
-          var r = document.createRange();
-          if (el.firstChild) {
-            r.setStart(el.firstChild, 0);
-          } else {
-            r.setStart(el, 0);
+          var selInEditor = !!(sel && sel.rangeCount && el.contains(sel.anchorNode));
+          var needsFocus = document.activeElement !== el;
+          if (!needsFocus && selInEditor) return;
+          try {
+            el.focus();
+          } catch (fe) { /* ignore */ }
+          if (richMarkdownWysiwygIsVisuallyEmpty(el)) {
+            placeCaretInEmptyRichWysiwyg(el);
+            return;
           }
-          r.collapse(true);
-          sel.removeAllRanges();
-          sel.addRange(r);
-        } catch (err) {
-          /* ignore */
-        }
+          if (!selInEditor) {
+            var ptRange = wysiwygCaretRangeFromPoint(x, y);
+            if (ptRange && el.contains(ptRange.startContainer)) {
+              ptRange.collapse(true);
+              if (sel) {
+                sel.removeAllRanges();
+                sel.addRange(ptRange);
+              }
+            }
+          }
+        });
       },
       true
     );
@@ -5006,35 +5257,62 @@
     }
   }
 
+  function openProgressItemEdit(li) {
+    if (!li) return;
+    var view = li.querySelector('.progress-item-view');
+    var edit = li.querySelector('.progress-item-edit');
+    var editText = li.querySelector('.progress-edit-text');
+    if (!edit || !editText) return;
+    var textEl = li.querySelector('.progress-text');
+    var rawText = li.getAttribute('data-progress-text');
+    setRichWysiwygFromMarkdown(editText, rawText !== null ? decodeAttr(rawText) : (textEl ? textEl.textContent : ''));
+    var dateIn = li.querySelector('.progress-edit-date');
+    var effortIn = li.querySelector('.progress-edit-effort');
+    if (dateIn) dateIn.value = li.dataset.dateAdded || '';
+    if (effortIn) effortIn.value = li.dataset.effort || '';
+    var catWrapEdit = li.querySelector('.progress-item-edit .category-dropdown-wrap');
+    if (catWrapEdit) {
+      var rawCats = li.getAttribute('data-progress-categories');
+      var arrCats = [];
+      try {
+        arrCats = rawCats ? JSON.parse(rawCats) : [];
+        if (!Array.isArray(arrCats)) arrCats = [];
+      } catch (err) { arrCats = []; }
+      setCategoryDropdownSelection(catWrapEdit, arrCats);
+    }
+    if (view) view.classList.add('hidden');
+    edit.classList.remove('hidden');
+    li.classList.add('progress-item--editing');
+    autoResizeTextarea(editText);
+    try {
+      editText.focus();
+      var sel = window.getSelection();
+      var range = document.createRange();
+      range.selectNodeContents(editText);
+      range.collapse(false);
+      if (sel) {
+        sel.removeAllRanges();
+        sel.addRange(range);
+      }
+    } catch (focusErr) { /* ignore */ }
+  }
+
+  function closeProgressItemEdit(li) {
+    if (!li) return;
+    var view = li.querySelector('.progress-item-view');
+    var edit = li.querySelector('.progress-item-edit');
+    if (edit) edit.classList.add('hidden');
+    if (view) view.classList.remove('hidden');
+    li.classList.remove('progress-item--editing');
+  }
+
   function wireProgressHistoryModalBody(root, taskId, subtaskId) {
     var isSub = !!subtaskId;
     var editSel = isSub ? '.btn-edit-subtask-progress' : '.btn-edit-progress';
     root.querySelectorAll(editSel).forEach(function (btn) {
       btn.addEventListener('click', function (e) {
         e.stopPropagation();
-        var li = btn.closest('.progress-item');
-        var view = li.querySelector('.progress-item-view');
-        var edit = li.querySelector('.progress-item-edit');
-        if (!edit.classList.contains('hidden')) return;
-        var textEl = li.querySelector('.progress-text');
-        var editText = li.querySelector('.progress-edit-text');
-        var rawText = li.getAttribute('data-progress-text');
-        setRichWysiwygFromMarkdown(editText, rawText !== null ? decodeAttr(rawText) : (textEl ? textEl.textContent : ''));
-        li.querySelector('.progress-edit-date').value = li.dataset.dateAdded || '';
-        li.querySelector('.progress-edit-effort').value = li.dataset.effort || '';
-        var catWrapEdit = li.querySelector('.progress-item-edit .category-dropdown-wrap');
-        if (catWrapEdit) {
-          var rawCats = li.getAttribute('data-progress-categories');
-          var arrCats = [];
-          try {
-            arrCats = rawCats ? JSON.parse(rawCats) : [];
-            if (!Array.isArray(arrCats)) arrCats = [];
-          } catch (err) { arrCats = []; }
-          setCategoryDropdownSelection(catWrapEdit, arrCats);
-        }
-        view.classList.add('hidden');
-        edit.classList.remove('hidden');
-        autoResizeTextarea(editText);
+        openProgressItemEdit(btn.closest('.progress-item'));
       });
     });
     root.querySelectorAll('.progress-save-btn').forEach(function (btn) {
@@ -5071,8 +5349,7 @@
         }
         savePromise.then(function (ok) {
           if (ok === false) return;
-          edit.classList.add('hidden');
-          view.classList.remove('hidden');
+          closeProgressItemEdit(li);
         });
       });
     });
@@ -5411,9 +5688,7 @@
           date_added: dateIn && dateIn.value || new Date().toISOString().slice(0, 10),
           effort_consumed_hours: effortIn ? parseFloat(effortIn.value) || 0 : 0,
           categories: getSelectedCategoriesFromWrap(progCatWrap)
-        }).then(function (ok) {
-          if (ok === false) return;
-          pruneTaskDraftProgressFields(taskId);
+        }, function () {
           if (textIn) setRichWysiwygFromMarkdown(textIn, '');
           if (dateIn) dateIn.value = '';
           if (effortIn) effortIn.value = '';
@@ -5425,30 +5700,7 @@
     card.querySelectorAll('.btn-edit-progress').forEach(function (btn) {
       btn.addEventListener('click', function (e) {
         e.stopPropagation();
-        var li = btn.closest('.progress-item');
-        var view = li.querySelector('.progress-item-view');
-        var edit = li.querySelector('.progress-item-edit');
-        if (edit.classList.contains('hidden')) {
-          var textEl = li.querySelector('.progress-text');
-          var editText = li.querySelector('.progress-edit-text');
-            var rawText = li.getAttribute('data-progress-text');
-            setRichWysiwygFromMarkdown(editText, rawText !== null ? decodeAttr(rawText) : (textEl ? textEl.textContent : ''));
-            li.querySelector('.progress-edit-date').value = li.dataset.dateAdded || '';
-            li.querySelector('.progress-edit-effort').value = li.dataset.effort || '';
-            var catWrapEdit = li.querySelector('.progress-item-edit .category-dropdown-wrap');
-            if (catWrapEdit) {
-              var rawCats = li.getAttribute('data-progress-categories');
-              var arrCats = [];
-              try {
-                arrCats = rawCats ? JSON.parse(rawCats) : [];
-                if (!Array.isArray(arrCats)) arrCats = [];
-              } catch (err) { arrCats = []; }
-              setCategoryDropdownSelection(catWrapEdit, arrCats);
-            }
-            view.classList.add('hidden');
-            edit.classList.remove('hidden');
-            autoResizeTextarea(editText);
-        }
+        openProgressItemEdit(btn.closest('.progress-item'));
       });
     });
 
@@ -5473,8 +5725,7 @@
           categories: getSelectedCategoriesFromWrap(catWrapSave)
         }).then(function (ok) {
           if (ok === false) return;
-          edit.classList.add('hidden');
-          view.classList.remove('hidden');
+          closeProgressItemEdit(li);
         });
       });
     });
@@ -5682,9 +5933,7 @@
             date_added: dateIn && dateIn.value || new Date().toISOString().slice(0, 10),
             effort_consumed_hours: effortIn ? parseFloat(effortIn.value) || 0 : 0,
             categories: getSelectedCategoriesFromWrap(subProgCatWrap)
-          }).then(function (ok) {
-            if (ok === false) return;
-            pruneSubtaskDraftProgressFields(subTaskId, subId);
+          }, function () {
             if (textIn) setRichWysiwygFromMarkdown(textIn, '');
             if (dateIn) dateIn.value = '';
             if (effortIn) effortIn.value = '';
@@ -5696,30 +5945,7 @@
       subCard.querySelectorAll('.btn-edit-subtask-progress').forEach(function (btn) {
         btn.addEventListener('click', function (e) {
           e.stopPropagation();
-          var li = btn.closest('.progress-item');
-          var view = li.querySelector('.progress-item-view');
-          var edit = li.querySelector('.progress-item-edit');
-          if (edit.classList.contains('hidden')) {
-            var textEl = li.querySelector('.progress-text');
-            var editTextEl = li.querySelector('.progress-edit-text');
-            var rawText = li.getAttribute('data-progress-text');
-            setRichWysiwygFromMarkdown(editTextEl, rawText !== null ? decodeAttr(rawText) : (textEl ? textEl.textContent : ''));
-            li.querySelector('.progress-edit-date').value = li.dataset.dateAdded || '';
-            li.querySelector('.progress-edit-effort').value = li.dataset.effort || '';
-            var subCatWrapEdit = li.querySelector('.progress-item-edit .category-dropdown-wrap');
-            if (subCatWrapEdit) {
-              var rawSub = li.getAttribute('data-progress-categories');
-              var arrSub = [];
-              try {
-                arrSub = rawSub ? JSON.parse(rawSub) : [];
-                if (!Array.isArray(arrSub)) arrSub = [];
-              } catch (err2) { arrSub = []; }
-              setCategoryDropdownSelection(subCatWrapEdit, arrSub);
-            }
-            view.classList.add('hidden');
-            edit.classList.remove('hidden');
-            autoResizeTextarea(editTextEl);
-          }
+          openProgressItemEdit(btn.closest('.progress-item'));
         });
       });
 
@@ -5744,8 +5970,7 @@
             categories: getSelectedCategoriesFromWrap(subCatWrapSave)
           }).then(function (ok) {
             if (ok === false) return;
-            edit.classList.add('hidden');
-            view.classList.remove('hidden');
+            closeProgressItemEdit(li);
           });
         });
       });
@@ -6147,6 +6372,197 @@
     bindRichFormatToolbars(card);
   }
 
+  function normalizeListSearchQuery(q) {
+    return String(q || '').trim();
+  }
+
+  function parseListSearchQuery(q) {
+    var raw = normalizeListSearchQuery(q);
+    if (!raw) {
+      return { active: false, mode: 'plain', tokens: [], regex: null, raw: '' };
+    }
+    var regexMatch = raw.match(/^\/(.+)\/([a-z]*)$/i);
+    if (regexMatch) {
+      try {
+        var flags = regexMatch[2] || 'i';
+        var re = new RegExp(regexMatch[1], flags);
+        return { active: true, mode: 'regex', tokens: [], regex: re, raw: raw };
+      } catch (e) {
+        /* invalid regex — fall through to plain token search */
+      }
+    }
+    return {
+      active: true,
+      mode: 'plain',
+      tokens: raw.toLowerCase().split(/\s+/).filter(function (t) {
+        return t && /[a-z0-9#]/i.test(t);
+      }),
+      regex: null,
+      raw: raw
+    };
+  }
+
+  function listSearchQueryActive() {
+    return parseListSearchQuery(state.listSearchQuery).active;
+  }
+
+  function levenshteinDistance(a, b) {
+    if (a === b) return 0;
+    if (!a.length) return b.length;
+    if (!b.length) return a.length;
+    var prev = [];
+    var curr = [];
+    var i;
+    var j;
+    for (j = 0; j <= b.length; j++) prev[j] = j;
+    for (i = 1; i <= a.length; i++) {
+      curr[0] = i;
+      for (j = 1; j <= b.length; j++) {
+        var cost = a.charAt(i - 1) === b.charAt(j - 1) ? 0 : 1;
+        curr[j] = Math.min(
+          curr[j - 1] + 1,
+          prev[j] + 1,
+          prev[j - 1] + cost
+        );
+      }
+      var swap = prev;
+      prev = curr;
+      curr = swap;
+    }
+    return prev[b.length];
+  }
+
+  /** Needle characters appear in order within haystack; optional max span rejects scattered matches. */
+  function fuzzySubsequenceInHaystack(haystackLower, needleLower, maxSpanFactor) {
+    if (!needleLower) return true;
+    var start = -1;
+    var end = -1;
+    var hi = 0;
+    for (var ni = 0; ni < needleLower.length; ni++) {
+      hi = haystackLower.indexOf(needleLower.charAt(ni), hi);
+      if (hi < 0) return false;
+      if (start < 0) start = hi;
+      end = hi;
+      hi += 1;
+    }
+    if (maxSpanFactor) {
+      var span = end - start + 1;
+      if (span > needleLower.length * maxSpanFactor) return false;
+    }
+    return true;
+  }
+
+  function fuzzyMaxEditDistance(tokenLen) {
+    if (tokenLen <= 3) return 0;
+    if (tokenLen <= 6) return 1;
+    return 2;
+  }
+
+  function searchTokenMatchesHaystack(haystackLower, tokenLower) {
+    if (!tokenLower) return true;
+    if (haystackLower.indexOf(tokenLower) >= 0) return true;
+    /* Numbers and very short tokens stay exact-only to avoid noisy matches. */
+    if (/^\d+$/.test(tokenLower) || tokenLower.length <= 3) return false;
+    if (fuzzySubsequenceInHaystack(haystackLower, tokenLower, 2)) return true;
+    var maxDist = fuzzyMaxEditDistance(tokenLower.length);
+    if (!maxDist) return false;
+    var words = haystackLower.split(/[^a-z0-9#]+/);
+    var w;
+    for (w = 0; w < words.length; w++) {
+      if (!words[w]) continue;
+      if (Math.abs(words[w].length - tokenLower.length) > maxDist) continue;
+      if (levenshteinDistance(tokenLower, words[w]) <= maxDist) return true;
+    }
+    return false;
+  }
+
+  /**
+   * Plain mode: every whitespace-separated token must match (substring, fuzzy subsequence, or typo tolerance).
+   * Regex mode: whole query is /pattern/flags and tested against haystack.
+   */
+  function textMatchesListSearchQuery(haystack, query) {
+    var parsed = (query && query.mode) ? query : parseListSearchQuery(query);
+    if (!parsed.active) return true;
+    var h = String(haystack || '');
+    if (parsed.mode === 'regex') {
+      return parsed.regex.test(h);
+    }
+    var hl = h.toLowerCase();
+    return parsed.tokens.every(function (tok) {
+      return searchTokenMatchesHaystack(hl, tok);
+    });
+  }
+
+  function listSearchEmptyMessage(fallback) {
+    if (listSearchQueryActive()) return 'No tasks match your search.';
+    return fallback;
+  }
+
+  function listSearchMatchSuffix(count) {
+    if (!listSearchQueryActive()) return '';
+    return ' (' + count + (count === 1 ? ' match' : ' matches') + ')';
+  }
+
+  function appendSearchableParts(parts, val) {
+    if (val == null || val === '') return;
+    parts.push(String(val));
+  }
+
+  function entityListSearchHaystack(entity) {
+    var parts = [];
+    appendSearchableParts(parts, entity.title);
+    appendSearchableParts(parts, entity.description);
+    appendSearchableParts(parts, entity.project);
+    appendSearchableParts(parts, entity.status);
+    appendSearchableParts(parts, entity.difficulty);
+    appendSearchableParts(parts, entity.assigned_date);
+    appendSearchableParts(parts, entity.eta);
+    (entity.tags || []).forEach(function (t) { appendSearchableParts(parts, t); });
+    (entity.categories || []).forEach(function (c) { appendSearchableParts(parts, c); });
+    (entity.bug_numbers || []).forEach(function (b) { appendSearchableParts(parts, b); });
+    (entity.progress_updates || []).forEach(function (p) {
+      appendSearchableParts(parts, p.text);
+      (p.categories || []).forEach(function (c) { appendSearchableParts(parts, c); });
+    });
+    (entity.concerns || []).forEach(function (c) {
+      appendSearchableParts(parts, c.description);
+      appendSearchableParts(parts, c.addressed_comment);
+    });
+    (entity.eta_updates || []).forEach(function (u) {
+      appendSearchableParts(parts, u.old_eta);
+      appendSearchableParts(parts, u.new_eta);
+    });
+    (entity.effort_updates || []).forEach(function (u) {
+      appendSearchableParts(parts, u.old_effort);
+      appendSearchableParts(parts, u.new_effort);
+    });
+    return parts.join(' ');
+  }
+
+  function taskMatchesListSearch(task, parsed) {
+    if (!parsed || !parsed.active) return true;
+    if (textMatchesListSearchQuery(entityListSearchHaystack(task), parsed)) return true;
+    return (task.subtasks || []).some(function (s) {
+      return textMatchesListSearchQuery(entityListSearchHaystack(s), parsed);
+    });
+  }
+
+  function filterTasksByListSearch(tasks) {
+    var parsed = parseListSearchQuery(state.listSearchQuery);
+    if (!parsed.active) return tasks;
+    return tasks.filter(function (t) { return taskMatchesListSearch(t, parsed); });
+  }
+
+  function syncListSearchUi() {
+    var input = $('list-search-input');
+    var clearBtn = $('list-search-clear-btn');
+    var q = state.listSearchQuery || '';
+    if (input && document.activeElement !== input && input.value !== q) {
+      input.value = q;
+    }
+    if (clearBtn) clearBtn.hidden = !parseListSearchQuery(q).active;
+  }
+
   function isTaskCompleted(task) {
     var s = task.status || 'Open';
     return s === 'Done' || s === 'Completed' || s === 'Dropped' || s === 'Closed';
@@ -6501,6 +6917,26 @@
     }
   }
 
+  function collapseAllExpandedTasks() {
+    state.expandedTasks = {};
+    state.expandedSubtasks = {};
+    renderList();
+  }
+
+  function collapseTaskCard(taskId) {
+    delete state.expandedTasks[taskId];
+    var task = state.data.tasks.find(function (t) { return t.id === taskId; });
+    if (task && task.subtasks) {
+      task.subtasks.forEach(function (s) {
+        delete state.expandedSubtasks[taskId + '_' + s.id];
+      });
+    }
+  }
+
+  function collapseSubtaskCard(taskId, subtaskId) {
+    delete state.expandedSubtasks[taskId + '_' + subtaskId];
+  }
+
   function renderList() {
     captureTaskListEditorDrafts();
     var tasks = getTasks();
@@ -6515,15 +6951,18 @@
       btn.classList.toggle('active', btn.getAttribute('data-list-filter') === filter);
     });
     syncEffortWiseToolbar();
+    syncListSearchUi();
 
     if (filter === 'today' || filter === 'yesterday') {
       var targetDate = filter === 'today' ? new Date().toISOString().slice(0, 10) : getYesterdayStr();
       var label = filter === 'today' ? 'Today' : 'Yesterday';
-      var matched = sortMainTasks(tasks.filter(function (t) { return taskHasProgressOnDate(t, targetDate); }));
-      if (headingEl) headingEl.textContent = label + '\'s Progress (' + matched.length + ')';
+      var matched = sortMainTasks(filterTasksByListSearch(tasks.filter(function (t) {
+        return taskHasProgressOnDate(t, targetDate);
+      })));
+      if (headingEl) headingEl.textContent = label + '\'s Progress (' + matched.length + ')' + listSearchMatchSuffix(matched.length);
       taskListEl.innerHTML = matched.length
         ? matched.map(renderTaskCard).join('')
-        : '<p class="empty-state">No progress entries for ' + label.toLowerCase() + '.</p>';
+        : '<p class="empty-state">' + listSearchEmptyMessage('No progress entries for ' + label.toLowerCase() + '.') + '</p>';
       taskListEl.querySelectorAll('.task-card').forEach(bindTaskCardEvents);
       if (addSection) addSection.style.display = 'none';
       if (completedSection) completedSection.style.display = 'none';
@@ -6531,9 +6970,9 @@
       if (headingRow) headingRow.style.display = '';
     } else if (filter === 'effortwise') {
       var ewRange = getEffortWiseRange();
-      var ewMatched = sortMainTasks(tasks.filter(function (t) {
+      var ewMatched = sortMainTasks(filterTasksByListSearch(tasks.filter(function (t) {
         return taskMatchesEffortWiseRange(t, ewRange.from, ewRange.to);
-      }));
+      })));
       var ewFocus = state.effortWiseFocusDate || localTodayYmd();
       var ewGran = state.effortWiseGranularity || 'day';
       var ewPeriod = getEffortWisePeriodLabel(ewFocus, ewGran);
@@ -6543,6 +6982,7 @@
         headingEl.innerHTML =
           'Effort Wise — <span class="effort-wise-heading-period">' + escapeHtml(ewPeriod) + '</span>' +
           ' <span class="effort-wise-heading-meta">(' + ewMatched.length + ' ' + ewTaskWord +
+          listSearchMatchSuffix(ewMatched.length) +
           ' · <span class="effort-wise-heading-spent top-bar-metric-spent top-bar-metric-spent--' + ewSum.status + '">' +
           escapeHtml(ewSum.spentStr) + '</span> / ' + escapeHtml(ewSum.capStr) + ')</span>';
       }
@@ -6551,18 +6991,18 @@
         : 'No tasks with progress or assignment for this day.';
       taskListEl.innerHTML = ewMatched.length
         ? ewMatched.map(renderTaskCard).join('')
-        : '<p class="empty-state">' + ewEmpty + '</p>';
+        : '<p class="empty-state">' + listSearchEmptyMessage(ewEmpty) + '</p>';
       taskListEl.querySelectorAll('.task-card').forEach(bindTaskCardEvents);
       if (addSection) addSection.style.display = 'none';
       if (completedSection) completedSection.style.display = 'none';
       separators.forEach(function (s) { s.style.display = 'none'; });
       if (headingRow) headingRow.style.display = '';
     } else if (filter === 'archive') {
-      var archived = sortMainTasks(tasks.filter(function (t) { return !!t.archived; }));
-      if (headingEl) headingEl.textContent = 'Archived Tasks (' + archived.length + ')';
+      var archived = sortMainTasks(filterTasksByListSearch(tasks.filter(function (t) { return !!t.archived; })));
+      if (headingEl) headingEl.textContent = 'Archived Tasks (' + archived.length + ')' + listSearchMatchSuffix(archived.length);
       taskListEl.innerHTML = archived.length
         ? archived.map(renderTaskCard).join('')
-        : '<p class="empty-state">No archived tasks.</p>';
+        : '<p class="empty-state">' + listSearchEmptyMessage('No archived tasks.') + '</p>';
       taskListEl.querySelectorAll('.task-card').forEach(bindTaskCardEvents);
       if (addSection) addSection.style.display = 'none';
       if (completedSection) completedSection.style.display = 'none';
@@ -6571,17 +7011,17 @@
     } else {
       var active = tasks.filter(function (t) { return !isTaskCompleted(t) && !t.archived; });
       var completed = tasks.filter(function (t) { return isTaskCompleted(t) && !t.archived; });
-      var sortedActive = sortMainTasks(active);
-      var sortedCompleted = sortMainTasks(completed);
-      if (headingEl) headingEl.textContent = 'Main Tasks List';
+      var sortedActive = sortMainTasks(filterTasksByListSearch(active));
+      var sortedCompleted = sortMainTasks(filterTasksByListSearch(completed));
+      if (headingEl) headingEl.textContent = 'Main Tasks List' + listSearchMatchSuffix(sortedActive.length);
       taskListEl.innerHTML = sortedActive.length
         ? sortedActive.map(renderTaskCard).join('')
-        : '<p class="empty-state">No tasks yet. Add one above.</p>';
+        : '<p class="empty-state">' + listSearchEmptyMessage('No tasks yet. Add one above.') + '</p>';
       taskListEl.querySelectorAll('.task-card').forEach(bindTaskCardEvents);
       if (completedTaskListEl) {
         completedTaskListEl.innerHTML = sortedCompleted.length
           ? sortedCompleted.map(renderTaskCard).join('')
-          : '<p class="empty-state">No done tasks.</p>';
+          : '<p class="empty-state">' + listSearchEmptyMessage('No done tasks.') + '</p>';
         completedTaskListEl.querySelectorAll('.task-card').forEach(bindTaskCardEvents);
       }
       syncDoneTasksListVisibility();
@@ -9962,6 +10402,10 @@
         setDoneTasksListHidden(!isDoneTasksListHidden());
       });
     }
+    var collapseAllBtn = $('collapse-all-tasks-btn');
+    if (collapseAllBtn) {
+      collapseAllBtn.addEventListener('click', collapseAllExpandedTasks);
+    }
     var addTaskCatContainer = $('add-task-category-dropdown');
     if (addTaskCatContainer) {
       addTaskCatContainer.innerHTML = renderCategoryDropdownHtml([], 'add-task-category');
@@ -9969,7 +10413,7 @@
     }
     syncAddTaskProjectSelect();
     bindRichFormatToolbars(document.getElementById('add-new-task-block'));
-    ensureRichPlaceholderCaretFixGlobalOnce();
+    ensureRichWysiwygEditorClickFocusGlobalOnce();
 
     var mainFilterWrap = document.querySelector('.main-task-filter-wrap');
     var listViewTabBar = $('list-view-tab-bar');
@@ -9981,6 +10425,27 @@
         });
       });
     }
+
+    var listSearchInput = $('list-search-input');
+    var listSearchClearBtn = $('list-search-clear-btn');
+    if (listSearchInput) {
+      listSearchInput.addEventListener('input', function () {
+        if (listSearchTimer) clearTimeout(listSearchTimer);
+        listSearchTimer = setTimeout(function () {
+          listSearchTimer = null;
+          state.listSearchQuery = listSearchInput.value;
+          renderList();
+        }, 200);
+      });
+    }
+    if (listSearchClearBtn) {
+      listSearchClearBtn.addEventListener('click', function () {
+        state.listSearchQuery = '';
+        if (listSearchInput) listSearchInput.value = '';
+        renderList();
+      });
+    }
+    syncListSearchUi();
 
     var effortWisePrevBtn = $('effort-wise-prev-btn');
     var effortWiseNextBtn = $('effort-wise-next-btn');

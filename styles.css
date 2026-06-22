@@ -1451,6 +1451,65 @@ body.sidebar-mode-collapsed .nav-btn-icon {
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.25);
 }
 
+.list-search-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  margin-bottom: 12px;
+}
+
+.list-search-input {
+  flex: 1 1 auto;
+  min-width: 0;
+  font-family: inherit;
+  font-size: var(--font-sm);
+  padding: 8px 12px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border-default);
+  background: var(--bg-inset);
+  color: var(--text-primary);
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+
+.list-search-input:focus {
+  outline: none;
+  border-color: var(--accent-blue);
+  box-shadow: var(--shadow-focus);
+}
+
+.list-search-input::-webkit-search-cancel-button {
+  -webkit-appearance: none;
+}
+
+.list-search-clear-btn {
+  flex-shrink: 0;
+  font-family: inherit;
+  font-size: var(--font-sm);
+  font-weight: 600;
+  padding: 7px 14px;
+  border-radius: var(--radius-pill);
+  cursor: pointer;
+  border: 1px solid var(--border-emphasis);
+  background: var(--btn-bg);
+  color: var(--text-primary);
+  transition: background 0.15s ease, border-color 0.15s ease;
+}
+
+.list-search-clear-btn:hover {
+  background: var(--btn-bg-hover);
+  border-color: var(--border-default);
+}
+
+.list-search-clear-btn:focus-visible {
+  outline: none;
+  box-shadow: var(--shadow-focus);
+}
+
+.list-search-clear-btn[hidden] {
+  display: none;
+}
+
 /* ── Effort Wise toolbar (list view) — matches list tab bar chrome ── */
 .effort-wise-toolbar[hidden] {
   display: none !important;
@@ -1509,22 +1568,21 @@ body.sidebar-mode-collapsed .nav-btn-icon {
   box-shadow: var(--shadow-focus);
 }
 
-.effort-wise-center {
-  display: inline-flex;
+.effort-wise-nav-group {
+  display: flex;
   align-items: center;
-  flex-wrap: wrap;
-  justify-content: center;
-  gap: 6px;
-  padding: 0 4px;
-  max-width: min(100%, 420px);
+  gap: 4px;
+  flex-shrink: 0;
 }
 
 .effort-wise-period-label {
+  flex: 0 0 18.5rem;
+  width: 18.5rem;
+  max-width: 18.5rem;
   font-size: var(--font-sm);
   font-weight: 600;
   color: var(--accent-blue);
   padding: 0 2px;
-  min-width: 0;
   text-align: center;
   white-space: nowrap;
   overflow: hidden;
@@ -1542,6 +1600,7 @@ body.sidebar-mode-collapsed .nav-btn-icon {
   border: 1px solid color-mix(in srgb, var(--accent-green-bright) 38%, transparent);
   line-height: 1.2;
   white-space: nowrap;
+  font-variant-numeric: tabular-nums;
 }
 
 .effort-wise-spent-pill--empty {
@@ -1658,6 +1717,10 @@ body.sidebar-mode-collapsed .nav-btn-icon {
   padding: 6px 14px;
   font-size: var(--font-sm);
   font-weight: 600;
+}
+
+.collapse-all-tasks-btn {
+  flex-shrink: 0;
 }
 
 .main-tasks-heading {
@@ -3646,6 +3709,16 @@ select.task-project-select,
   margin-top: 6px;
 }
 
+.progress-item--editing .progress-item-view {
+  display: none !important;
+}
+
+.progress-item-edit > .rich-textarea-wrap {
+  flex: 1 1 100%;
+  min-width: 0;
+  width: 100%;
+}
+
 .progress-item-edit input,
 .progress-item-edit textarea {
   background: var(--bg-inset);
@@ -3664,16 +3737,35 @@ select.task-project-select,
   box-shadow: var(--shadow-focus);
 }
 
-.progress-item-edit .progress-edit-text {
+.progress-item-edit .progress-edit-text,
+.progress-item-edit .progress-edit-text.rich-markdown-wysiwyg {
   flex: 1 1 100%;
+  width: 100%;
+  box-sizing: border-box;
+  display: block;
+  min-width: 120px;
   min-height: 2.5em;
+  background: var(--bg-inset);
+  border: 1px solid var(--border-emphasis);
+  color: var(--text-primary);
+  padding: var(--space-sm) var(--space-md);
+  border-radius: var(--radius-md);
+  font-size: var(--font-base);
   font-family: inherit;
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+
+.progress-item-edit .progress-edit-text.rich-markdown-wysiwyg:focus {
+  outline: none;
+  border-color: var(--accent-blue);
+  box-shadow: var(--shadow-focus);
 }
 
 .progress-item-edit .progress-edit-text.rich-markdown-wysiwyg {
   white-space: pre-wrap;
   line-height: 1.45;
   overflow-wrap: anywhere;
+  cursor: text;
 }
 
 .progress-item-edit .progress-edit-text.rich-markdown-wysiwyg:empty:before,
@@ -6245,11 +6337,75 @@ a.auto-link:hover {
   gap: 10px 12px;
   width: 100%;
   box-sizing: border-box;
-  margin-bottom: 18px;
+  margin-bottom: 12px;
   padding: 10px 14px;
   border-radius: 12px;
   border: 1px solid var(--border-muted);
   background: rgba(110, 118, 129, 0.06);
+}
+
+.notes-search-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  margin-bottom: 18px;
+}
+
+.notes-search-input {
+  flex: 1 1 auto;
+  min-width: 0;
+  font-family: inherit;
+  font-size: var(--font-sm);
+  padding: 8px 12px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border-default);
+  background: var(--bg-inset);
+  color: var(--text-primary);
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+
+.notes-search-input:focus {
+  outline: none;
+  border-color: var(--accent-blue);
+  box-shadow: var(--shadow-focus);
+}
+
+.notes-search-input::-webkit-search-cancel-button {
+  -webkit-appearance: none;
+}
+
+.notes-search-clear-btn {
+  flex-shrink: 0;
+  font-family: inherit;
+  font-size: var(--font-sm);
+  font-weight: 600;
+  padding: 7px 14px;
+  border-radius: var(--radius-pill);
+  cursor: pointer;
+  border: 1px solid var(--border-emphasis);
+  background: var(--btn-bg);
+  color: var(--text-primary);
+  transition: background 0.15s ease, border-color 0.15s ease;
+}
+
+.notes-search-clear-btn:hover {
+  background: var(--btn-bg-hover);
+  border-color: var(--border-default);
+}
+
+.notes-search-clear-btn:focus-visible {
+  outline: none;
+  box-shadow: var(--shadow-focus);
+}
+
+.notes-search-clear-btn[hidden] {
+  display: none;
+}
+
+.notes-empty-state {
+  width: 100%;
+  margin: 12px 0 0;
 }
 
 .notes-filter-label {
